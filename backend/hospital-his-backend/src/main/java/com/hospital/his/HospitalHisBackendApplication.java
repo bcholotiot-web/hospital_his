@@ -7,6 +7,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 public class HospitalHisBackendApplication {
 
     public static void main(String[] args) {
+
         SpringApplication.run(HospitalHisBackendApplication.class, args);
     }
 
