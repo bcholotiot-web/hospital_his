@@ -13,6 +13,8 @@
 package com.hospital.his.auth.service;
 
 
+import com.hospital.his.auth.dto.LoginRequest;
+import com.hospital.his.auth.dto.LoginResponse;
 import com.hospital.his.auth.dto.RegisterRequest;
 import com.hospital.his.auth.dto.RegisterResponse;
 import com.hospital.his.users.entity.User;
@@ -21,8 +23,12 @@ import com.hospital.his.users.repository.UserRepository;
 import com.hospital.his.users.repository.RoleRepository;
 import com.hospital.his.patients.entity.Patient;
 import com.hospital.his.patients.repository.PatientRepository;
+import com.hospital.his.audit.service.AuditService;
 
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+
+import com.hospital.his.security.jwt.JwtService;
 
 @Service
 public class AuthService {
@@ -31,18 +37,28 @@ public class AuthService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final PatientRepository patientRepository;
+    private final AuditService auditService;
+    private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
 
     // Constructor
     public AuthService(
             UserRepository userRepository,
             RoleRepository roleRepository,
-            PatientRepository patientRepository){
+            PatientRepository patientRepository,
+            AuditService auditService,
+            PasswordEncoder passwordEncoder,
+            JwtService jwtService){
 
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.patientRepository = patientRepository;
+        this.auditService = auditService;
+        this.passwordEncoder = passwordEncoder;
+        this.jwtService = jwtService;
     }
 
+    //Metodo para registro
     public RegisterResponse register(RegisterRequest request) {
         validateRegisterRequest(request);
 
@@ -56,7 +72,7 @@ public class AuthService {
                 .phone(request.getPhone())
                 .email(request.getEmail())
                 .username(request.getUsername())
-                .password(request.getPassword())
+                .password(passwordEncoder.encode(request.getPassword()))
                 .active(true)
                 .role(patientRole)
                 .build();
@@ -72,12 +88,53 @@ public class AuthService {
         //Registra paciente
         patientRepository.save(patient);
         System.out.println("Paciente registrado correctamente.");
+
+        auditService.log(user.getUsername(), "REGISTER", "AUTH", "Usuario registrado exitosamente. ");
         return RegisterResponse.builder()
                 .userId(user.getId())
                 .message("¡Registro exitoso! Su cuenta ha sido creada. Ahora puede iniciar sesión con sus credenciales")
                 .build();
     }
 
+    //Metodo para login
+    public LoginResponse login(LoginRequest request){
+        validateLoginRequest(request);
+        User user = userRepository.findByUsername(request.getUsername()).orElseThrow(()-> new RuntimeException("Usuario o contraseña incorrectos."));
+
+
+
+        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+            throw new RuntimeException("Usuario o contraseña incorrectos.");
+        }
+
+        if(!user.getActive()){
+            throw new RuntimeException("La cuenta se encuentra inactiva");
+        }
+
+        auditService.log(user.getUsername(), "LOGIN", "AUTH", "Inicio de sesión exitoso");
+        String token = jwtService.generateToken(user.getUsername(), user.getRole().getName());
+        return LoginResponse.builder()
+                        .userId(user.getId())
+                                .fullName(user.getFullName())
+                                        .role(user.getRole().getName())
+                                            .token(token)
+                                                .message("Inicio de sesión exitoso.")
+                                                    .build();
+    }
+
+    //Validaciones login
+    private void validateLoginRequest(LoginRequest request) {
+
+        if (request.getUsername() == null || request.getUsername().isBlank()) {
+            throw new RuntimeException( "Debe ingresar un nombre de usuario.");
+        }
+
+        if (request.getPassword() == null || request.getPassword().isBlank()) {
+            throw new RuntimeException("Debe ingresar una contraseña.");
+        }
+    }
+
+    //Validaciones registro
     private void validateRegisterRequest(RegisterRequest request){
         validateDPI(request);
         validateNIT(request);

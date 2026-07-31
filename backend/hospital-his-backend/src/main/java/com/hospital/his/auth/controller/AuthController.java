@@ -1,5 +1,7 @@
 package com.hospital.his.auth.controller;
 
+import com.hospital.his.auth.dto.LoginRequest;
+import com.hospital.his.auth.dto.LoginResponse;
 import com.hospital.his.auth.dto.RegisterRequest;
 import com.hospital.his.auth.dto.RegisterResponse;
 import com.hospital.his.auth.service.AuthService;
@@ -20,6 +22,15 @@ public class AuthController {
     @RequestBody RegisterRequest request) {
 
         RegisterResponse response = authService.register(request);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<LoginResponse> login(
+            @RequestBody LoginRequest request) {
+
+        LoginResponse response = authService.login(request);
+
         return ResponseEntity.ok(response);
     }
 }
