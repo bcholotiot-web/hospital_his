@@ -1,0 +1,9 @@
+Funcionando:
+
+✅ POST /api/users (Crear usuario)
+ ✅ GET /api/users (Listar usuarios)
+ ✅ JWT + Roles
+ ✅ Protección ADMIN
+ ✅ Auditoría
+
+Ahora completemos el CU-01 Mantenimiento de Usuarios.
