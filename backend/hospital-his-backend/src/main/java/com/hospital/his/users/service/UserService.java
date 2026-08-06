@@ -11,6 +11,10 @@ import com.hospital.his.users.dto.CreateUserRequest;
 import com.hospital.his.users.dto.UserResponse;
 import com.hospital.his.users.entity.Role;
 import com.hospital.his.users.entity.User;
+import com.hospital.his.catalogs.entity.Branch;
+import com.hospital.his.catalogs.entity.Specialty;
+import com.hospital.his.catalogs.repository.BranchRepository;
+import com.hospital.his.catalogs.repository.SpecialtyRepository;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -23,16 +27,32 @@ public class UserService {
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuditService auditService;
+    private final BranchRepository branchRepository;
+    private final SpecialtyRepository specialtyRepository;
 
-    public UserService(UserRepository userRepository, RoleRepository roleRepository, PasswordEncoder passwordEncoder, AuditService auditService){
+    public UserService(UserRepository userRepository, RoleRepository roleRepository, PasswordEncoder passwordEncoder, AuditService auditService, BranchRepository branchRepository, SpecialtyRepository specialtyRepository){
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.passwordEncoder = passwordEncoder;
         this.auditService = auditService;
+        this.branchRepository = branchRepository;
+        this.specialtyRepository = specialtyRepository;
     }
 
     //Se registra usuario al estar logueado
     public UserResponse createUser(CreateUserRequest request){
+
+        Branch branch = null;
+
+        if (request.getBranchId() != null) {
+            branch = branchRepository.findById( request.getBranchId()).orElseThrow(() -> new RuntimeException("Sucursal no encontrada."));
+        }
+
+        Specialty specialty = null;
+
+        if (request.getSpecialtyId() != null) {
+            specialty = specialtyRepository.findById(request.getSpecialtyId()).orElseThrow(() -> new RuntimeException("Especialidad no encontrada."));
+        }
         validateCreateUserRequest(request);
 
         Role role = roleRepository.findById(request.getRoleId()).orElseThrow(()->new RuntimeException("Rol no encontrado"));
@@ -48,6 +68,8 @@ public class UserService {
                 .insuranceNumber(request.getInsuranceNumber())
                 .active(request.getActive())
                 .role(role)
+                .branch(branch)
+                .specialty(specialty)
                 .build();
 
         user = userRepository.save(user);
@@ -64,6 +86,8 @@ public class UserService {
                 .username(user.getUsername())
                 .role(user.getRole().getName())
                 .insuranceNumber(user.getInsuranceNumber())
+                .branch(user.getBranch() != null ? user.getBranch().getName() : null)
+                .specialty(user.getSpecialty() != null ? user.getSpecialty().getName() : null)
                 .active(user.getActive())
                 .build();
     }
@@ -124,9 +148,20 @@ public class UserService {
 
     //Actualización de usuario
     public UserResponse updateUser(Long id, UpdateUserRequest request) {
+
         //Validacion usuario y role existentes
         User user = userRepository.findById(id).orElseThrow(() -> new RuntimeException("Usuario no encontrado."));
         Role role = roleRepository.findById(request.getRoleId()).orElseThrow(() ->new RuntimeException("Rol no encontrado."));
+
+        Branch branch = null;
+        if (request.getBranchId() != null) {
+            branch = branchRepository.findById(request.getBranchId()).orElseThrow(() -> new RuntimeException("Sucursal no encontrada."));
+        }
+
+        Specialty specialty = null;
+        if (request.getSpecialtyId() != null) {
+            specialty = specialtyRepository.findById(request.getSpecialtyId()).orElseThrow(() -> new RuntimeException("Especialidad no encontrada."));
+        }
 
         user.setFullName(request.getFullName());
         user.setDpi(request.getDpi());
@@ -137,6 +172,8 @@ public class UserService {
         user.setInsuranceNumber(request.getInsuranceNumber());
         user.setActive(request.getActive());
         user.setRole(role);
+        user.setBranch(branch);
+        user.setSpecialty(specialty);
 
         user = userRepository.save(user);
 
@@ -152,6 +189,8 @@ public class UserService {
                 .username(user.getUsername())
                 .role(user.getRole().getName())
                 .insuranceNumber(user.getInsuranceNumber())
+                .branch(user.getBranch() != null ? user.getBranch().getName(): null)
+                .specialty(user.getSpecialty() != null ? user.getSpecialty().getName() : null)
                 .active(user.getActive())
                 .build();
     }

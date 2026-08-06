@@ -17,6 +17,6 @@ public class UpdateUserRequest {
     private Long roleId;
     private String insuranceNumber;
     private Long branchId;
-    private Long specialityId;
+    private Long specialtyId;
     private Boolean active;
 }

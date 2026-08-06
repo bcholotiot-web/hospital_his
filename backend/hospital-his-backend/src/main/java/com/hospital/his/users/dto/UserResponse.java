@@ -17,5 +17,7 @@ public class UserResponse {
     private String username;
     private String role;
     private String insuranceNumber;
+    private String branch;
+    private String specialty;
     private Boolean active;
 }

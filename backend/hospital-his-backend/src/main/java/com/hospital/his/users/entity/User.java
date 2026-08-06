@@ -37,6 +37,9 @@
 
 package com.hospital.his.users.entity;
 
+import com.hospital.his.catalogs.entity.Branch;
+import com.hospital.his.catalogs.entity.Specialty;
+
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -83,6 +86,14 @@ public class User {
     @ManyToOne
     @JoinColumn(name = "role_id", nullable = false)
     private Role role;
+
+    @ManyToOne
+    @JoinColumn(name = "branch_id")
+    private Branch branch;
+
+    @ManyToOne
+    @JoinColumn(name = "specialty_id")
+    private Specialty specialty;
 }
 
 
