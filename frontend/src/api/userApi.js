@@ -35,3 +35,32 @@ export const createUser = (data) => {
         }
     );
 };
+
+//Actualizar a los usuarios
+export const updateUser = (id, data) => {
+    const token = localStorage.getItem("token");
+
+    return axios.put(
+        `${API_URL}/${id}`,
+        data,
+        {
+            headers: {
+                Authorization: `Bearer ${token}`
+            }
+        }
+    );
+};
+
+export const changeUserStatus = (id, active) => {
+    const token = localStorage.getItem("token");
+
+    return axios.patch(
+        `${API_URL}/${id}/status?active=${active}`,
+        {},
+        {
+            headers: {
+                Authorization: `Bearer ${token}`
+            }
+        }
+    );
+};

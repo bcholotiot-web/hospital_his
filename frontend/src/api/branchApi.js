@@ -1,8 +1,8 @@
 import axios from "axios";
 
-const API_URL = "http://localhost:8080/api/roles";
+const API_URL = "http://localhost:8080/api/branches";
 
-export const getRoles = () => {
+export const getBranches = () => {
 
     const token = localStorage.getItem("token");
 

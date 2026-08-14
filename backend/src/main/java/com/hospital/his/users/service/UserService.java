@@ -91,6 +91,9 @@ public class UserService {
                 .branch(user.getBranch() != null ? user.getBranch().getName() : null)
                 .specialty(user.getSpecialty() != null ? user.getSpecialty().getName() : null)
                 .active(user.getActive())
+                .roleId(user.getRole() != null ? user.getRole().getId() : null)
+                .branchId(user.getBranch() != null ? user.getBranch().getId() : null)
+                .specialtyId(user.getSpecialty() != null ? user.getSpecialty().getId() : null)
                 .build();
     }
 
@@ -103,7 +106,7 @@ public class UserService {
             throw new RuntimeException("Ya existe un usuario con ese correo");
         }
         if(userRepository.existsByUsername(request.getUsername())){
-            throw new RuntimeException("Ya existe un usuario con ese nombre de usuario");
+            throw new RuntimeException("El nombre de usuario ya se encuentra registrado. Por favor, elija otro");
 
         }
     }
@@ -125,6 +128,9 @@ public class UserService {
                         .insuranceNumber(
                                 user.getInsuranceNumber())
                         .active(user.getActive())
+                        .roleId(user.getRole() != null ? user.getRole().getId() : null)
+                        .branchId(user.getBranch() != null ? user.getBranch().getId() : null)
+                        .specialtyId(user.getSpecialty() != null ? user.getSpecialty().getId() : null)
                         .build())
                 .toList();
     }
@@ -145,6 +151,12 @@ public class UserService {
                 .role(user.getRole().getName())
                 .insuranceNumber(user.getInsuranceNumber())
                 .active(user.getActive())
+                .roleId(user.getRole() != null ? user.getRole().getId() : null)
+                .branchId(user.getBranch() != null ? user.getBranch().getId() : null)
+                .specialtyId(user.getSpecialty() != null ? user.getSpecialty().getId() : null)
+                .roleId(user.getRole() != null ? user.getRole().getId() : null)
+                .branchId(user.getBranch() != null ? user.getBranch().getId() : null)
+                .specialtyId(user.getSpecialty() != null ? user.getSpecialty().getId() : null)
                 .build();
     }
 
@@ -177,6 +189,7 @@ public class UserService {
         user.setBranch(branch);
         user.setSpecialty(specialty);
 
+
         user = userRepository.save(user);
 
         auditService.log(user.getUsername(),"UPDATE_USER","USERS","Usuario actualizado correctamente.");
@@ -194,6 +207,9 @@ public class UserService {
                 .branch(user.getBranch() != null ? user.getBranch().getName(): null)
                 .specialty(user.getSpecialty() != null ? user.getSpecialty().getName() : null)
                 .active(user.getActive())
+                .roleId(user.getRole() != null ? user.getRole().getId() : null)
+                .branchId(user.getBranch() != null ? user.getBranch().getId() : null)
+                .specialtyId(user.getSpecialty() != null ? user.getSpecialty().getId() : null)
                 .build();
     }
 
@@ -221,6 +237,9 @@ public class UserService {
                 .role(user.getRole().getName())
                 .insuranceNumber(user.getInsuranceNumber())
                 .active(user.getActive())
+                .roleId(user.getRole() != null ? user.getRole().getId() : null)
+                .branchId(user.getBranch() != null ? user.getBranch().getId() : null)
+                .specialtyId(user.getSpecialty() != null ? user.getSpecialty().getId() : null)
                 .build();
     }
 

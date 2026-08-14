@@ -20,4 +20,8 @@ public class UserResponse {
     private String branch;
     private String specialty;
     private Boolean active;
+
+    private Long roleId;
+    private Long branchId;
+    private Long specialtyId;
 }

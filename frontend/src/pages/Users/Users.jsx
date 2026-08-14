@@ -1,133 +1,120 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import MainLayout from "../../layouts/MainLayout";
-import { getUsers, createUser } from "../../api/userApi";
-import { getRoles } from "../../api/roleApi";
+import UserList from "./UserList";
+import UserCreate from "./UserCreate";
+import UserEdit from "./UserEdit";
+import { changeUserStatus } from "../../api/userApi";
+
+import ConfirmModal from "../../components/ConfirmModal";
+
 
 function Users() {
+    const [view, setView] = useState("list");
+    const [selectedUser, setSelectedUser] = useState(null);
+    const [refreshKey, setRefreshKey] = useState(0);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [userToDelete, setUserToDelete] = useState(null);
 
-    const [users, setUsers] = useState([]);
-    const [fullName, setFullName] = useState("");
-    const [email, setEmail] = useState("");
-    const [username, setUsername] = useState("");
-    const [password, setPassword] = useState("");
-    const [roles, setRoles] = useState([]);
-    const [roleId, setRoleId] = useState("");
+    const handleEdit = (user) => {
+        setSelectedUser(user);
+        setView("edit");
+    };
 
-    useEffect(() => {
-        loadUsers();
-        loadRoles();
-    }, []);
+    const handleDelete = (user) => {
+        setUserToDelete(user);
+        setShowDeleteModal(true);
+    };
 
-    const loadUsers = async () => {
+    const confirmDeleteUser = async () => {
+        if (!userToDelete) {
+            return;
+        }
+
         try {
-            const response = await getUsers();
-            setUsers(response.data);
+            await changeUserStatus(
+                userToDelete.id,
+                false
+            );
+
+            alert(
+                `El usuario ${userToDelete.username} ha sido eliminado correctamente.`
+            );
+
+            setShowDeleteModal(false);
+            setUserToDelete(null);
+
+            setRefreshKey(prev => prev + 1);
+            setView("list");
+
         } catch (error) {
             console.error(error);
+            alert("Error al eliminar usuario.");
         }
     };
 
-    const loadRoles = async () => {
-        try {
-            const response = await getRoles();
-            setRoles(response.data);
-        } catch (error) {
-            console.error(error);
-        }
+    const cancelDeleteUser = () => {
+        setShowDeleteModal(false);
+        setUserToDelete(null);
     };
 
-    const handleCreateUser = async (e) => {
-        e.preventDefault();
-        try {
-            await createUser({
-                fullName,
-                dpi: Math.floor(Math.random() * 10000000000000).toString(),
-                nit: "12345678",
-                phone: "55112233",
-                email,
-                username,
-                password,
-                roleId,
-                insuranceNumber: null,
-                branchId: null,
-                specialtyId: null,
-                active: true
+    const handleUpdated = () => {
+        setSelectedUser(null);
+        setRefreshKey(prev => prev + 1);
+        setView("list");
+    };
 
-            });
-
-            loadUsers();
-            setFullName("");
-            setEmail("");
-            setUsername("");
-            setPassword("");
-            alert("Usuario creado correctamente");
-        } catch (error) {
-            console.error(error);
-            alert("Error al crear usuario");
-        }
+    const handleCancelEdit = () => {
+        setSelectedUser(null);
+        setView("list");
     };
 
     return (
         <MainLayout>
-            <h1>Usuarios</h1>
-            <h2>Crear Usuario</h2>
+            <h1>Módulo Usuarios</h1>
 
-            <form onSubmit={handleCreateUser}>
-                <input type="text" placeholder="Nombre" value={fullName} onChange={(e) => setFullName(e.target.value)} />
-                <br />
-                <br />
-                <input type="email" placeholder="Correo" value={email} onChange={(e) => setEmail(e.target.value)} />
-                <br />
-                <br />
-                <input type="text" placeholder="Usuario" value={username} onChange={(e) => setUsername(e.target.value)} />
-                <br />
-                <br />
-                <input type="password" placeholder="Contraseña" value={password} onChange={(e) => setPassword(e.target.value)} />
-                <br />
-                <br />
+            <div>
+                <button onClick={() => setView("list")}>
+                    Listar Usuarios
+                </button>
 
-                <select value={roleId} onChange={(e) => setRoleId(e.target.value)}>
-                    <option value="">Seleccione un rol</option>
-                    {
-                        roles.map(role => (<option key={role.id} value={role.id}>{role.name}</option>))
-                    }
-
-                </select>
-                <button type="submit">Crear Usuario</button>
-            </form>
+                <button onClick={() => setView("create")}>
+                    Crear Usuario
+                </button>
+            </div>
 
             <hr />
 
-            <table border="1">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Nombre</th>
-                        <th>Usuario</th>
-                        <th>Correo</th>
-                        <th>Rol</th>
-                        <th>Estado</th>
-                    </tr>
-                </thead>
-                <tbody>
+            {view === "list" && (
+                <UserList
+                    key={refreshKey}
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
+                />
+            )}
 
-                    {
-                        users.map(user => (
-                            <tr key={user.id}>
-                                <td>{user.id}</td>
-                                <td>{user.fullName}</td>
-                                <td>{user.username}</td>
-                                <td>{user.email}</td>
-                                <td>{user.role}</td>
-                                <td>{user.active ? "Activo" : "Inactivo"}
-                                </td>
-                            </tr>
-                        ))
-                    }
-                </tbody>
-            </table>
+            {view === "create" && (
+                <UserCreate />
+            )}
+
+            {view === "edit" && selectedUser && (
+                <UserEdit
+                    user={selectedUser}
+                    onUpdated={handleUpdated}
+                    onCancel={handleCancelEdit}
+                />
+            )}
+
+            {showDeleteModal && userToDelete && (
+                <ConfirmModal
+                    title="Confirmar eliminación"
+                    message={`¿Está seguro que desea eliminar el usuario "${userToDelete.username}"? Esta acción no se puede deshacer.`}
+                    onConfirm={confirmDeleteUser}
+                    onCancel={cancelDeleteUser}
+                />
+            )}
         </MainLayout>
     );
 }
 
 export default Users;
+
