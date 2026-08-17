@@ -6,6 +6,7 @@ import UserEdit from "./UserEdit";
 import { changeUserStatus } from "../../api/userApi";
 
 import ConfirmModal from "../../components/ConfirmModal";
+import "../../styles/ui.css";
 
 
 function Users() {
@@ -72,12 +73,26 @@ function Users() {
         <MainLayout>
             <h1>Módulo Usuarios</h1>
 
-            <div>
-                <button onClick={() => setView("list")}>
+            <div className="tabs">
+                <button
+                    className={
+                        view === "list"
+                            ? "tab-button active"
+                            : "tab-button"
+                    }
+                    onClick={() => setView("list")}
+                >
                     Listar Usuarios
                 </button>
 
-                <button onClick={() => setView("create")}>
+                <button
+                    className={
+                        view === "create"
+                            ? "tab-button active"
+                            : "tab-button"
+                    }
+                    onClick={() => setView("create")}
+                >
                     Crear Usuario
                 </button>
             </div>
@@ -93,7 +108,12 @@ function Users() {
             )}
 
             {view === "create" && (
-                <UserCreate />
+                <UserCreate
+                    onCreated={() => {
+                        setRefreshKey(prev => prev + 1);
+                        setView("list");
+                    }}
+                />
             )}
 
             {view === "edit" && selectedUser && (

@@ -2,10 +2,12 @@ import { useEffect, useState } from "react";
 import { getUsers } from "../../api/userApi";
 
 import "./Users.css";
+import "../../styles/tables.css";
+import "../../styles/ui.css";
 
 function UserList({ onEdit, onDelete }) {
     const [users, setUsers] = useState([]);
-    const [filterField, setFilterField] = useState("id");
+    const [filterField, setFilterField] = useState("username");
     const [searchText, setSearchText] = useState("");
     const [filteredUsers, setFilteredUsers] = useState([]);
 
@@ -28,31 +30,32 @@ function UserList({ onEdit, onDelete }) {
 
     const handleSearch = () => {
         if (searchText.length > 25) {
-            alert(
-                "El campo de búsqueda no puede exceder los 25 caracteres."
-            );
+            alert("El campo de búsqueda no puede exceder los 25 caracteres.");
             return;
         }
-        if (!searchText.trim()) {
+
+        const text = searchText.trim().toLowerCase();
+
+        if (!text) {
             setFilteredUsers(users);
             setCurrentPage(1);
             return;
         }
 
-        const text = searchText.toLowerCase();
-
         const result = users.filter(user => {
             switch (filterField) {
-                case "id":
-                    return String(user.id).includes(text);
+                case "username":
+                    return user.username
+                        ?.toLowerCase()
+                        .includes(text);
 
                 case "name":
                     return user.fullName
                         ?.toLowerCase()
                         .includes(text);
 
-                case "email":
-                    return user.email
+                case "nit":
+                    return user.nit
                         ?.toLowerCase()
                         .includes(text);
 
@@ -61,18 +64,13 @@ function UserList({ onEdit, onDelete }) {
                         ?.toLowerCase()
                         .includes(text);
 
-                case "username":
-                    return user.username
-                        ?.toLowerCase()
-                        .includes(text);
-
-                case "dpi":
-                    return user.dpi
+                case "branch":
+                    return user.branch
                         ?.toLowerCase()
                         .includes(text);
 
                 default:
-                    return true;
+                    return false;
             }
         });
 
@@ -96,29 +94,35 @@ function UserList({ onEdit, onDelete }) {
         <div>
             <h2>Listado de Usuarios</h2>
 
-            <div>
+            <div className="search-bar">
                 <select
                     value={filterField}
                     onChange={(e) =>
                         setFilterField(e.target.value)}
                 >
-                    <option value="id">ID</option>
+                    <option value="username">Usuario</option>
                     <option value="name">Nombre</option>
-                    <option value="email">Correo Electrónico</option>
+                    <option value="nit">NIT</option>
                     <option value="role">Rol</option>
-                    <option value="username">Nombre de Usuario</option>
-                    <option value="dpi">DPI</option>
+                    <option value="branch">Sucursal</option>
                 </select>
 
                 <input
                     type="text"
                     placeholder="Buscar..."
                     value={searchText}
-                    onChange={(e) =>
-                        setSearchText(e.target.value)}
+                    onChange={(e) => setSearchText(e.target.value)}
+                    onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                            handleSearch();
+                        }
+                    }}
                 />
 
-                <button onClick={handleSearch}>
+                <button
+                    className="search-button"
+                    onClick={handleSearch}
+                >
                     🔍
                 </button>
             </div>
@@ -148,54 +152,58 @@ function UserList({ onEdit, onDelete }) {
                     No se encontraron resultados para los criterios de búsqueda ingresados. Por favor, modifique los filtros e intente nuevamente.
                 </p>
             ) : (
-                <table border="1">
-                    <thead>
-                        <tr>
+                <div className="table-card">
+                    <table className="data-table">
+                        <thead>
+                            <tr>
 
-                            <th>ID</th>
-                            <th>Nombre</th>
-                            <th>Correo Electrónico</th>
-                            <th>Rol</th>
-                            <th>Usuario</th>
-                            <th>Estado</th>
-                            <th>Acciones</th>
-                        </tr>
-                    </thead>
-
-                    <tbody>
-                        {paginatedUsers.map(user => (
-                            <tr key={user.id}>
-                                <td>{user.id}</td>
-                                <td>{user.fullName}</td>
-                                <td>{user.email}</td>
-                                <td>{user.role}</td>
-                                <td>{user.username}</td>
-                                <td>
-                                    {user.active
-                                        ? "Activo"
-                                        : "Inactivo"}
-                                </td>
-                                <td>
-                                    <div className="action-buttons">
-                                        <button
-                                            className="btn-edit"
-                                            onClick={() => onEdit(user)}
-                                        >
-                                            Editar
-                                        </button>
-
-                                        <button
-                                            className="btn-delete"
-                                            onClick={() => onDelete(user)}
-                                        >
-                                            Eliminar
-                                        </button>
-                                    </div>
-                                </td>
+                                <th>ID</th>
+                                <th>Nombre</th>
+                                <th>Correo Electrónico</th>
+                                <th>Rol</th>
+                                <th>Usuario</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
+                        </thead>
+
+                        <tbody>
+                            {paginatedUsers.map(user => (
+                                <tr key={user.id}>
+                                    <td>{user.id}</td>
+                                    <td>{user.fullName}</td>
+                                    <td>{user.email}</td>
+                                    <td>{user.role}</td>
+                                    <td>{user.username}</td>
+                                    <td>
+                                        <span className={user.active ? "status-active" : "status-inactive"}>
+                                            {user.active
+                                                ? "Activo"
+                                                : "Inactivo"}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div className="button-row">
+                                            <button
+                                                className="btn btn-secondary"
+                                                onClick={() => onEdit(user)}
+                                            >
+                                                Editar
+                                            </button>
+
+                                            <button
+                                                className="btn btn-danger-outline"
+                                                onClick={() => onDelete(user)}
+                                            >
+                                                Eliminar
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
             )}
 
             <br />

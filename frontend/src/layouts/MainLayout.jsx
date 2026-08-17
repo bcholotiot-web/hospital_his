@@ -5,7 +5,7 @@ function MainLayout({ children }) {
 
     const handleLogout = () => {
         localStorage.removeItem("token");
-        navigate("/login");
+        navigate("/login", { replace: true });
     };
 
     return (

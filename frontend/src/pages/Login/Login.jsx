@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { login } from "../../api/authApi";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+
+import "./Login.css";
+import "../../styles/ui.css";
 
 function Login() {
 
@@ -27,46 +30,54 @@ function Login() {
     };
 
     return (
-        <div>
-            <h1>Hospital HIS</h1>
+        <div className="login-page">
+            <div className="login-card">
+                <h1>Hospital HIS</h1>
+                <h2>Iniciar Sesión</h2>
 
-            <h2>Iniciar Sesión</h2>
+                <form onSubmit={handleLogin}>
+                    <div className="form-group">
+                        <label>Usuario</label>
+                        <input
+                            type="text"
+                            value={username}
+                            onChange={(e) =>
+                                setUsername(e.target.value)}
+                        />
+                    </div>
 
-            <form onSubmit={handleLogin}>
+                    <div className="form-group">
+                        <label>Contraseña</label>
+                        <input
+                            type="password"
+                            value={password}
+                            onChange={(e) =>
+                                setPassword(e.target.value)}
+                        />
+                    </div>
 
-                <div>
-                    <label>Usuario</label>
-                    <br />
-                    <input
-                        type="text"
-                        value={username}
-                        onChange={(e) =>
-                            setUsername(e.target.value)}
-                    />
+                    <button
+                        type="submit"
+                        className="btn btn-primary"
+                        style={{ width: "100%", marginTop: "18px" }}
+                    >
+                        Iniciar Sesión
+                    </button>
+                </form>
+
+                <div className="login-actions">
+                    <Link to="/">
+                        Volver al portal
+                    </Link>
+
+                    <Link to="/register">
+                        Registrarse
+                    </Link>
                 </div>
-
-                <br />
-
-                <div>
-                    <label>Contraseña</label>
-                    <br />
-                    <input
-                        type="password"
-                        value={password}
-                        onChange={(e) =>
-                            setPassword(e.target.value)}
-                    />
-                </div>
-
-                <br />
-
-                <button type="submit">
-                    Iniciar Sesión
-                </button>
-
-            </form>
+            </div>
         </div>
     );
+
 }
 
 export default Login;

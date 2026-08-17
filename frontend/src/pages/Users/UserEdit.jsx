@@ -4,6 +4,8 @@ import { getRoles } from "../../api/roleApi";
 import { getBranches } from "../../api/branchApi";
 import { getSpecialties } from "../../api/specialtyApi";
 
+import "../../styles/forms.css";
+
 function UserEdit({ user, onUpdated, onCancel }) {
     const [fullName, setFullName] = useState("");
     const [email, setEmail] = useState("");
