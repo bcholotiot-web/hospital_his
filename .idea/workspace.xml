@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="aab36e60-5404-425b-9bbf-06c17d612e1b" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/backend/hospital-his-backend/.gitattributes" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/hospital-his-backend/.gitignore" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/hospital-his-backend/.mvn/wrapper/maven-wrapper.properties" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/hospital-his-backend/mvnw" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/hospital-his-backend/mvnw.cmd" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/hospital-his-backend/pom.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/hospital-his-backend/seguimiento.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/hospital-his-backend/src/main/java/com/hospital/his/HospitalHisBackendApplication.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/hospital-his-backend/src/main/java/com/hospital/his/audit/entity/AuditLog.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/hospital-his-backend/src/main/java/com/hospital/his/audit/repository/AuditLogRepository.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/hospital-his-backend/src/main/java/com/hospital/his/audit/service/AuditService.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/hospital-his-backend/src/main/java/com/hospital/his/auth/controller/AuthController.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/hospital-his-backend/src/main/java/com/hospital/his/auth/dto/LoginRequest.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/hospital-his-backend/src/main/java/com/hospital/his/auth/dto/LoginResponse.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/hospital-his-backend/src/main/java/com/hospital/his/auth/dto/RegisterRequest.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/hospital-his-backend/src/main/java/com/hospital/his/auth/dto/RegisterResponse.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/hospital-his-backend/src/main/java/com/hospital/his/auth/service/AuthService.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/hospital-his-backend/src/main/java/com/hospital/his/catalogs/controller/BranchController.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/hospital-his-backend/src/main/java/com/hospital/his/catalogs/controller/SpecialtyController.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/hospital-his-backend/src/main/java/com/hospital/his/catalogs/dto/BranchResponse.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/hospital-his-backend/src/main/java/com/hospital/his/catalogs/dto/CreateBranchRequest.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/hospital-his-backend/src/main/java/com/hospital/his/catalogs/dto/CreateSpecialtyRequest.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/hospital-his-backend/src/main/java/com/hospital/his/catalogs/dto/SpecialtyResponse.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/hospital-his-backend/src/main/java/com/hospital/his/catalogs/dto/UpdateBranchRequest.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/hospital-his-backend/src/main/java/com/hospital/his/catalogs/dto/UpdateSpecialtyRequest.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/hospital-his-backend/src/main/java/com/hospital/his/catalogs/entity/Branch.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/hospital-his-backend/src/main/java/com/hospital/his/catalogs/entity/Specialty.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/hospital-his-backend/src/main/java/com/hospital/his/catalogs/repository/BranchRepository.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/hospital-his-backend/src/main/java/com/hospital/his/catalogs/repository/SpecialtyRepository.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/hospital-his-backend/src/main/java/com/hospital/his/catalogs/service/BranchService.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/hospital-his-backend/src/main/java/com/hospital/his/catalogs/service/SpecialtyService.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/hospital-his-backend/src/main/java/com/hospital/his/common/exception/ErrorResponse.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/hospital-his-backend/src/main/java/com/hospital/his/common/exception/GlobalExceptionHandler.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/hospital-his-backend/src/main/java/com/hospital/his/patients/entity/Patient.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/hospital-his-backend/src/main/java/com/hospital/his/patients/repository/PatientRepository.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/hospital-his-backend/src/main/java/com/hospital/his/security/SecurityConfig.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/hospital-his-backend/src/main/java/com/hospital/his/security/jwt/JwtAuthenticationFilter.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/hospital-his-backend/src/main/java/com/hospital/his/security/jwt/JwtService.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/hospital-his-backend/src/main/java/com/hospital/his/users/controller/UserController.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/hospital-his-backend/src/main/java/com/hospital/his/users/dto/CreateUserRequest.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/hospital-his-backend/src/main/java/com/hospital/his/users/dto/UpdateUserRequest.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/hospital-his-backend/src/main/java/com/hospital/his/users/dto/UserResponse.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/hospital-his-backend/src/main/java/com/hospital/his/users/entity/Role.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/hospital-his-backend/src/main/java/com/hospital/his/users/entity/User.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/hospital-his-backend/src/main/java/com/hospital/his/users/repository/RoleRepository.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/hospital-his-backend/src/main/java/com/hospital/his/users/repository/UserRepository.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/hospital-his-backend/src/main/java/com/hospital/his/users/service/UserService.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/hospital-his-backend/src/main/resources/application.properties" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/hospital-his-backend/src/test/java/com/hospital/his/HospitalHisBackendApplicationTests.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/padron_electoral/.gitattributes" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/padron_electoral/.gitignore" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/padron_electoral/.mvn/wrapper/maven-wrapper.properties" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/padron_electoral/mvnw" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/padron_electoral/mvnw.cmd" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/padron_electoral/pom.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/padron_electoral/src/main/java/com/padron_electoral/PadronElectoralApplication.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/padron_electoral/src/main/java/com/padron_electoral/controller/padron_electoral_controller.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/padron_electoral/src/main/java/com/padron_electoral/controller/padron_electoral_view_controller.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/padron_electoral/src/main/java/com/padron_electoral/model/padron_electoral.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/padron_electoral/src/main/java/com/padron_electoral/repository/padron_electoral_repository.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/padron_electoral/src/main/java/com/padron_electoral/service/impl/padron_electoral_service_impl.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/padron_electoral/src/main/java/com/padron_electoral/service/padron_electoral_service.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/padron_electoral/src/main/resources/application.properties" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/padron_electoral/src/main/resources/templates/patron_electoral/create.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/padron_electoral/src/main/resources/templates/patron_electoral/edit.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/padron_electoral/src/main/resources/templates/patron_electoral/index.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/padron_electoral/src/test/java/com/padron_electoral/PadronElectoralApplicationTests.java" beforeDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="ProjectColorInfo"><![CDATA[{
+  "associatedIndex": 7,
+  "fromUser": false
+}]]></component>
+  <component name="ProjectId" id="3HWxQul0K4t2WQNiXkkG3sslOfb" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "Application.HospitalHisBackendApplication.executor": "Run",
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
+    "codeWithMe.voiceChat.enabledByDefault": "false",
+    "com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1": "true",
+    "git-widget-placeholder": "feature/auth",
+    "junie.onboarding.icon.badge.shown": "true",
+    "kotlin-language-version-configured": "true",
+    "last_opened_file_path": "D:/Users/Yayan/Desktop/hospital-his",
+    "nodejs_package_manager_path": "npm",
+    "to.speed.mode.migration.done": "true",
+    "vue.rearranger.settings.migration": "true"
+  }
+}]]></component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-jdk-30f59d01ecdd-37e91769500f-intellij.indexing.shared.core-IU-261.26222.65" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="aab36e60-5404-425b-9bbf-06c17d612e1b" name="Changes" comment="" />
+      <created>1785997614849</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1785997614849</updated>
+      <workItem from="1785997618007" duration="186000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+</project>
