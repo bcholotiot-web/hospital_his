@@ -9,7 +9,6 @@ import lombok.*;
 @Builder
 public class CreateAppointmentRequest {
 
-    private Long patientUserId;
     private Long doctorUserId;
     private Long branchId;
     private Long specialtyId;

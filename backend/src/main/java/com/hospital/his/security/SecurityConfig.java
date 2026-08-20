@@ -15,6 +15,7 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.List;
+import org.springframework.http.HttpMethod;
 
 @Configuration
 public class SecurityConfig {
@@ -52,7 +53,7 @@ public class SecurityConfig {
                         .hasRole("ADMIN")
 
                         .requestMatchers("/api/appointments/**")
-                        .hasAnyRole("PACIENTE", "ADMIN")
+                        .hasRole("PACIENTE")
 
                         .anyRequest()
                         .authenticated())

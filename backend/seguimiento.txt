@@ -1,9 +1,14 @@
-Funcionando:
-
-✅ POST /api/users (Crear usuario)
- ✅ GET /api/users (Listar usuarios)
- ✅ JWT + Roles
- ✅ Protección ADMIN
- ✅ Auditoría
-
-Ahora completemos el CU-01 Mantenimiento de Usuarios.
+✅ Solo pacientes autenticados pueden agendar
+✅ Paciente obtenido desde el JWT, no desde localStorage
+✅ Sucursales activas
+✅ Especialidades activas configuradas en la sucursal
+✅ Médicos activos asignados a sucursal y especialidad
+✅ Fechas futuras o actuales válidas
+✅ Horarios ocupados no seleccionables
+✅ Protección contra doble reserva
+✅ Motivo entre 10 y 2000 caracteres
+✅ Estado PENDIENTE_DE_PAGO
+✅ Auditoría con usuario autenticado
+✅ Wizard de 5 pasos
+✅ Regreso a pasos anteriores y limpieza de selecciones posteriores
+✅ Preparación para CU-04

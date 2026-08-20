@@ -7,6 +7,7 @@ import Branches from "../pages/Branches/Branches";
 import Specialties from "../pages/Specialties/Specialties";
 import Register from "../pages/Register/Register";
 import PrivateRoute from "./PrivateRoute";
+import AppointmentWizard from "../pages/Appointments/AppointmentWizard";
 
 function AppRouter() {
 
@@ -17,9 +18,10 @@ function AppRouter() {
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
                 <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
-                <Route path="/users" element={<PrivateRoute><Users /></PrivateRoute>} />
+                <Route path="/users" element={<PrivateRoute allowedRoles={["ADMIN", "Administrador"]}><Users /></PrivateRoute>} />
                 <Route path="/branches" element={<PrivateRoute><Branches /></PrivateRoute>} />
                 <Route path="/specialties" element={<PrivateRoute><Specialties /></PrivateRoute>} />
+                <Route path="/appointments/new" element={<PrivateRoute allowedRoles={["PACIENTE", "Paciente"]}> <AppointmentWizard /></PrivateRoute>} />
 
             </Routes>
         </BrowserRouter>

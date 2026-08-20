@@ -12,7 +12,7 @@ public interface BranchSpecialtyRepository
             Long branchId
     );
 
-    boolean existsByBranch_IdAndSpecialty_Id(
+    boolean existsByBranch_IdAndSpecialty_IdAndActiveTrue(
             Long branchId,
             Long specialtyId
     );

@@ -22,6 +22,22 @@ function Login() {
             });
             console.log(response.data);
             localStorage.setItem("token", response.data.token);
+
+            localStorage.setItem(
+                "role",
+                response.data.role
+            );
+
+            localStorage.setItem(
+                "userId",
+                String(response.data.userId)
+            );
+
+            localStorage.setItem(
+                "fullName",
+                response.data.fullName
+            );
+
             navigate("/dashboard")
         } catch (error) {
             console.error(error);

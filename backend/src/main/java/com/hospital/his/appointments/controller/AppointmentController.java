@@ -8,6 +8,9 @@ import org.springframework.web.bind.annotation.*;
 import com.hospital.his.appointments.dto.AvailableSlotResponse;
 import com.hospital.his.appointments.dto.DoctorResponse;
 import com.hospital.his.catalogs.dto.SpecialtyResponse;
+import com.hospital.his.catalogs.dto.BranchResponse;
+
+import org.springframework.security.core.Authentication;
 
 import java.util.List;
 
@@ -23,9 +26,16 @@ public class AppointmentController {
     }
 
     @PostMapping
-    public ResponseEntity<AppointmentResponse> createAppointment(@RequestBody CreateAppointmentRequest request)
-    {
-        return ResponseEntity.ok(appointmentService.createAppointment(request));
+    public ResponseEntity<AppointmentResponse> createAppointment(
+            @RequestBody CreateAppointmentRequest request,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(
+                appointmentService.createAppointment(
+                        request,
+                        authentication.getName()
+                )
+        );
     }
 
     @GetMapping("/specialties")
@@ -60,6 +70,14 @@ public class AppointmentController {
                         doctorId,
                         date
                 )
+        );
+    }
+
+    @GetMapping("/branches")
+    public ResponseEntity<List<BranchResponse>> getActiveBranches() {
+
+        return ResponseEntity.ok(
+                appointmentService.getActiveBranches()
         );
     }
 }

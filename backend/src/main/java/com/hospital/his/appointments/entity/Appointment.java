@@ -15,6 +15,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+
 public class Appointment {
 
     @Id
@@ -47,9 +48,12 @@ public class Appointment {
     @Column(nullable = false, length = 2000)
     private String reason;
 
-    @Column(nullable = false)
-    private String status;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 30)
+    private AppointmentStatus status;
 
     @Column(nullable = false)
     private Boolean active;
+
+
 }
