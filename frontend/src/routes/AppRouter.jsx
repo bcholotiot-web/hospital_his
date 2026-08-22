@@ -8,6 +8,9 @@ import Specialties from "../pages/Specialties/Specialties";
 import Register from "../pages/Register/Register";
 import PrivateRoute from "./PrivateRoute";
 import AppointmentWizard from "../pages/Appointments/AppointmentWizard";
+import PaymentPage from "../pages/Payments/PaymentPage";
+import PaymentConfirmation from "../pages/Payments/PaymentConfirmation";
+import MyAppointments from "../pages/Appointments/MyAppointments";
 
 function AppRouter() {
 
@@ -22,6 +25,9 @@ function AppRouter() {
                 <Route path="/branches" element={<PrivateRoute><Branches /></PrivateRoute>} />
                 <Route path="/specialties" element={<PrivateRoute><Specialties /></PrivateRoute>} />
                 <Route path="/appointments/new" element={<PrivateRoute allowedRoles={["PACIENTE", "Paciente"]}> <AppointmentWizard /></PrivateRoute>} />
+                <Route path="/payments/success" element={<PrivateRoute allowedRoles={["PACIENTE", "Paciente"]}><PaymentConfirmation /></PrivateRoute>} />
+                <Route path="/payments/:appointmentId" element={<PrivateRoute allowedRoles={["PACIENTE", "Paciente"]}><PaymentPage /></PrivateRoute>} />
+                <Route path="/appointments" element={<PrivateRoute allowedRoles={["PACIENTE", "Paciente"]}><MyAppointments /></PrivateRoute>} />
 
             </Routes>
         </BrowserRouter>

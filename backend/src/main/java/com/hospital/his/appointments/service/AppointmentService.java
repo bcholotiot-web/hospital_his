@@ -276,28 +276,16 @@ public class AppointmentService {
      * genera los horarios y marca los ocupados o pasados
      * como no disponibles.
      */
-    public List<AvailableSlotResponse> getAvailableSlots(
-            Long doctorId,
-            String date
-    ) {
+    public List<AvailableSlotResponse> getAvailableSlots(Long doctorId, String date) {
         if (doctorId == null) {
-            throw new RuntimeException(
-                    "Debe seleccionar un médico."
-            );
+            throw new RuntimeException("Debe seleccionar un médico.");
         }
 
         if (date == null || date.isBlank()) {
-            throw new RuntimeException(
-                    "Debe seleccionar una fecha."
-            );
+            throw new RuntimeException("Debe seleccionar una fecha.");
         }
 
-        User doctor = userRepository.findById(doctorId)
-                .orElseThrow(() ->
-                        new RuntimeException(
-                                "Médico no encontrado."
-                        )
-                );
+        User doctor = userRepository.findById(doctorId).orElseThrow(() -> new RuntimeException("Médico no encontrado."));
 
         if (!Boolean.TRUE.equals(doctor.getActive())) {
             throw new RuntimeException(
@@ -363,6 +351,8 @@ public class AppointmentService {
                                             appointment.getActive()
                                     )
                             )
+                            .filter(appointment -> isAppointmentBlockingSlot(appointment)
+                            )
                             .anyMatch(appointment ->
                                     appointment
                                             .getAppointmentDateTime()
@@ -410,10 +400,7 @@ public class AppointmentService {
      * registra la cita usando el username obtenido del JWT.
      */
     @Transactional
-    public AppointmentResponse createAppointment(
-            CreateAppointmentRequest request,
-            String authenticatedUsername
-    ) {
+    public AppointmentResponse createAppointment(CreateAppointmentRequest request, String authenticatedUsername) {
         validateCreateAppointment(request);
 
         if (authenticatedUsername == null
@@ -579,7 +566,8 @@ public class AppointmentService {
                         .reason(
                                 request.getReason().trim()
                         )
-                        .status("PENDIENTE_DE_PAGO")
+                        .status(AppointmentStatus.PENDIENTE_DE_PAGO)
+                        .reservationExpiresAt(LocalDateTime.now().plusMinutes(5))
                         .active(true)
                         .build();
 
@@ -605,12 +593,60 @@ public class AppointmentService {
         return toResponse(appointment);
     }
 
+    /*Este método:
+
+    Obtiene el paciente a partir del username del JWT.
+    Comprueba que esté activo.
+    Comprueba que tenga rol paciente.
+    Devuelve solamente las citas que le pertenecen.
+    No recibe ningún ID de paciente desde React.*/
+    public List<AppointmentResponse> getMyAppointments(String authenticatedUsername) {
+        if (authenticatedUsername == null
+                || authenticatedUsername.isBlank()) {
+
+            throw new RuntimeException(
+                    "No se pudo identificar al paciente autenticado."
+            );
+        }
+
+        User patient = userRepository
+                .findByUsername(authenticatedUsername)
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "No se encontró el paciente autenticado."
+                        )
+                );
+
+        if (!Boolean.TRUE.equals(patient.getActive())) {
+            throw new RuntimeException(
+                    "La cuenta del paciente se encuentra inactiva."
+            );
+        }
+
+        String roleName = patient.getRole() != null
+                ? patient.getRole().getName()
+                : null;
+
+        if (!isPatientRole(roleName)) {
+            throw new RuntimeException(
+                    "Solamente los pacientes pueden consultar sus citas."
+            );
+        }
+
+        List<Appointment> appointments =
+                appointmentRepository
+                        .findByPatient_UsernameOrderByAppointmentDateTimeDesc(
+                                authenticatedUsername
+                        );
+
+        return appointments.stream()
+                .map(this::toResponse)
+                .toList();
+    }
     /*
      * Valida los datos básicos enviados para crear la cita.
      */
-    private void validateCreateAppointment(
-            CreateAppointmentRequest request
-    ) {
+    private void validateCreateAppointment(CreateAppointmentRequest request) {
         if (request == null) {
             throw new RuntimeException(
                     "Los datos de la cita son obligatorios."
@@ -671,11 +707,7 @@ public class AppointmentService {
      * Confirma que el médico esté asignado a la sucursal
      * y especialidad seleccionadas.
      */
-    private void validateDoctorAssignment(
-            User doctor,
-            Branch branch,
-            Specialty specialty
-    ) {
+    private void validateDoctorAssignment(User doctor, Branch branch, Specialty specialty) {
         if (doctor.getBranch() == null
                 || !doctor
                 .getBranch()
@@ -702,9 +734,7 @@ public class AppointmentService {
     /*
      * Reconoce las variantes actuales del rol paciente.
      */
-    private boolean isPatientRole(
-            String roleName
-    ) {
+    private boolean isPatientRole(String roleName) {
         if (roleName == null) {
             return false;
         }
@@ -752,9 +782,7 @@ public class AppointmentService {
     /*
      * Convierte Appointment a AppointmentResponse.
      */
-    private AppointmentResponse toResponse(
-            Appointment appointment
-    ) {
+    private AppointmentResponse toResponse(Appointment appointment) {
         return AppointmentResponse.builder()
                 .id(appointment.getId())
                 .patientName(appointment.getPatient().getFullName())
@@ -764,6 +792,33 @@ public class AppointmentService {
                 .appointmentDateTime(appointment.getAppointmentDateTime().toString())
                 .reason(appointment.getReason())
                 .status(appointment.getStatus().name())
+                .reservationExpiresAt(appointment.getReservationExpiresAt().toString())
                 .build();
+    }
+
+    private boolean isAppointmentBlockingSlot(Appointment appointment) {
+        if (appointment.getStatus()
+                == AppointmentStatus.PAGADA) {
+
+            return true;
+        }
+
+        if (appointment.getStatus()
+                == AppointmentStatus.CONFIRMADA) {
+
+            return true;
+        }
+
+        if (appointment.getStatus()
+                == AppointmentStatus.PENDIENTE_DE_PAGO) {
+
+            return appointment
+                    .getReservationExpiresAt()
+                    .isAfter(
+                            LocalDateTime.now()
+                    );
+        }
+
+        return false;
     }
 }

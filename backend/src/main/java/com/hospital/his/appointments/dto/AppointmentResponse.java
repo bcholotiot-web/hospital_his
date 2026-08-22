@@ -17,4 +17,5 @@ public class AppointmentResponse {
     private String appointmentDateTime;
     private String reason;
     private String status;
+    private String reservationExpiresAt;
 }

@@ -52,6 +52,9 @@ public class Appointment {
     @Column(nullable = false, length = 30)
     private AppointmentStatus status;
 
+    @Column(name = "reservation_expires_at", nullable = false)
+    private LocalDateTime reservationExpiresAt;
+
     @Column(nullable = false)
     private Boolean active;
 

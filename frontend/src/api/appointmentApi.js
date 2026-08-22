@@ -69,4 +69,10 @@ export const createAppointment = (data) => {
         getAuthHeaders()
     );
 };
-``
+
+export const getMyAppointments = () => {
+    return axios.get(
+        `${API_URL}/my`,
+        getAuthHeaders()
+    );
+};

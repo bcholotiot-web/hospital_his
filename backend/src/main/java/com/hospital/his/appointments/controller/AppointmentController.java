@@ -80,4 +80,17 @@ public class AppointmentController {
                 appointmentService.getActiveBranches()
         );
     }
+
+    @GetMapping("/my")
+    public ResponseEntity<List<AppointmentResponse>>
+    getMyAppointments(
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(
+                appointmentService.getMyAppointments(
+                        authentication.getName()
+                )
+        );
+    }
+
 }

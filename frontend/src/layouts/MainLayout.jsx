@@ -66,12 +66,21 @@ function MainLayout({ children }) {
                     )}
 
                     {isPatient && (
-                        <Link
-                            to="/appointments/new"
-                            className="main-sidebar-link"
-                        >
-                            Agendar Cita
-                        </Link>
+                        <>
+                            <Link
+                                to="/appointments/new"
+                                className="main-sidebar-link"
+                            >
+                                Agendar Cita
+                            </Link>
+
+                            <Link
+                                to="/appointments"
+                                className="main-sidebar-link"
+                            >
+                                Mis Citas
+                            </Link>
+                        </>
                     )}
                 </nav>
 

@@ -55,6 +55,9 @@ public class SecurityConfig {
                         .requestMatchers("/api/appointments/**")
                         .hasRole("PACIENTE")
 
+                        .requestMatchers("/api/payments/**")
+                        .hasRole("PACIENTE")
+
                         .anyRequest()
                         .authenticated())
                 .addFilterBefore(

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import MainLayout from "../../layouts/MainLayout";
+import { useNavigate } from "react-router-dom";
 
 import {
     getAppointmentBranches,
@@ -30,6 +31,8 @@ function AppointmentWizard() {
     const [loading, setLoading] = useState(false);
     const [reasonError, setReasonError] = useState("");
     const [successMessage, setSuccessMessage] = useState("");
+
+    const navigate = useNavigate();
 
     useEffect(() => {
         loadBranches();
@@ -309,9 +312,23 @@ function AppointmentWizard() {
                 reason: reason.trim()
             });
 
+            sessionStorage.setItem(
+                "pendingAppointment",
+                JSON.stringify(response.data)
+            );
+
             setSuccessMessage(
                 "Su cita ha sido registrada exitosamente. Será redirigido al proceso de pago para confirmar la reserva."
             );
+
+            setTimeout(() => {
+                navigate(
+                    `/payments/${response.data.id}`,
+                    {
+                        replace: true
+                    }
+                );
+            }, 1500);
 
             console.log(
                 "Cita registrada:",
