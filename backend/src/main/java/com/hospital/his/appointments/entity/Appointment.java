@@ -22,6 +22,18 @@ public class Appointment {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    /*
+    Version nos servira para
+    Recepcionista A abre la cita
+    Recepcionista B registra la llegada
+    Recepcionista A intenta registrar también
+    Hibernate detecta que la versión cambió
+    Se evita sobrescribir el cambio
+    * */
+    @Version
+    @Column(nullable = false)
+    private Long version;
+
     // Paciente que agenda la cita
     @ManyToOne
     @JoinColumn(name = "patient_user_id", nullable = false)
@@ -54,6 +66,13 @@ public class Appointment {
 
     @Column(name = "reservation_expires_at", nullable = false)
     private LocalDateTime reservationExpiresAt;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false,length = 20)
+    private AppointmentPriority priority;
+
+    @Column(name = "arrival_time")
+    private LocalDateTime arrivalTime;
 
     @Column(nullable = false)
     private Boolean active;

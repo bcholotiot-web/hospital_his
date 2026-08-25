@@ -14,6 +14,10 @@ function MainLayout({ children }) {
         role === "PACIENTE" ||
         role === "Paciente";
 
+    const isReceptionist =
+        role === "RECEPCIONISTA" ||
+        role === "Recepcionista";
+
     const handleLogout = () => {
         localStorage.removeItem("token");
         localStorage.removeItem("role");
@@ -81,6 +85,15 @@ function MainLayout({ children }) {
                                 Mis Citas
                             </Link>
                         </>
+                    )}
+
+                    {isReceptionist && (
+                        <Link
+                            to="/reception"
+                            className="main-sidebar-link"
+                        >
+                            Recepción de Pacientes
+                        </Link>
                     )}
                 </nav>
 

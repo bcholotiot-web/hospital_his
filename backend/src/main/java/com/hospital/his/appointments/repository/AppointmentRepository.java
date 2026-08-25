@@ -8,14 +8,21 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.Collection;
 
 public interface AppointmentRepository
         extends JpaRepository<Appointment, Long> {
 
     //El metodo evita que un metodo tenga dos citas en la misma fecha y hora
-    boolean existsByDoctorAndAppointmentDateTime(
+    boolean existsByDoctorAndAppointmentDateTimeAndActiveTrue(
             User doctor,
             LocalDateTime appointmentDateTime
+    );
+
+    boolean existsByDoctorAndAppointmentDateTimeAndActiveTrueAndIdNot(
+            User doctor,
+            LocalDateTime appointmentDateTime,
+            Long appointmentId
     );
 
     List<Appointment> findByDoctorId(Long doctorId);
@@ -45,6 +52,16 @@ public interface AppointmentRepository
     List<Appointment>
     findByPatient_UsernameOrderByAppointmentDateTimeDesc(
             String username
+    );
+
+    List<Appointment>
+    findByPatient_DpiAndStatusInOrderByAppointmentDateTimeDesc(
+            String dpi,
+            Collection<AppointmentStatus> statuses
+    );
+
+    boolean existsByPatient_Dpi(
+            String dpi
     );
 
 }

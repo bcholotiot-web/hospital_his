@@ -22,13 +22,11 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
     public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
-        this.jwtAuthenticationFilter =
-                jwtAuthenticationFilter;
+        this.jwtAuthenticationFilter = jwtAuthenticationFilter;
     }
 
     @Bean
     public PasswordEncoder passwordEncoder() {
-
         return new BCryptPasswordEncoder();
     }
 
@@ -57,6 +55,9 @@ public class SecurityConfig {
 
                         .requestMatchers("/api/payments/**")
                         .hasRole("PACIENTE")
+
+                        .requestMatchers("/api/reception/**")
+                        .hasRole("RECEPCIONISTA")
 
                         .anyRequest()
                         .authenticated())

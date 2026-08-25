@@ -39,6 +39,9 @@ function PaymentPage() {
     const [cardLastFour, setCardLastFour] =
         useState("4242");
 
+    const [idempotencyKey, setIdempotencyKey] =
+        useState(() => crypto.randomUUID());
+
     const [errors, setErrors] =
         useState({});
 
@@ -55,7 +58,7 @@ function PaymentPage() {
         useState("");
 
     useEffect(() => {
-        loadPaymentReservation();
+        loadPaymentSummary();
     }, [appointmentId]);
 
     const loadPaymentSummary = async () => {
@@ -197,8 +200,7 @@ function PaymentPage() {
             return;
         }
 
-        const [idempotencyKey, setIdempotencyKey] =
-            useState(() => crypto.randomUUID());
+
 
         try {
             setProcessing(true);

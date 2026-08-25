@@ -5,6 +5,7 @@ import com.hospital.his.appointments.dto.AvailableSlotResponse;
 import com.hospital.his.appointments.dto.CreateAppointmentRequest;
 import com.hospital.his.appointments.dto.DoctorResponse;
 import com.hospital.his.appointments.entity.Appointment;
+import com.hospital.his.appointments.entity.AppointmentPriority;
 import com.hospital.his.appointments.entity.AppointmentStatus;
 import com.hospital.his.appointments.repository.AppointmentRepository;
 import com.hospital.his.audit.service.AuditService;
@@ -347,20 +348,18 @@ public class AppointmentService {
             boolean occupied =
                     existingAppointments.stream()
                             .filter(appointment ->
-                                    Boolean.TRUE.equals(
-                                            appointment.getActive()
-                                    )
-                            )
-                            .filter(appointment -> isAppointmentBlockingSlot(appointment)
-                            )
-                            .anyMatch(appointment ->
                                     appointment
                                             .getAppointmentDateTime()
                                             .equals(slotDateTime)
+                            )
+                            .anyMatch(
+                                    this::isAppointmentBlockingSlot
                             );
 
             boolean pastOrPresent =
-                    !slotDateTime.isAfter(now);
+                    !slotDateTime.isAfter(
+                            LocalDateTime.now()
+                    );
 
             availableSlots.add(
                     AvailableSlotResponse.builder()
@@ -543,7 +542,7 @@ public class AppointmentService {
 
         boolean occupied =
                 appointmentRepository
-                        .existsByDoctorAndAppointmentDateTime(
+                        .existsByDoctorAndAppointmentDateTimeAndActiveTrue(
                                 doctor,
                                 appointmentDateTime
                         );
@@ -568,6 +567,8 @@ public class AppointmentService {
                         )
                         .status(AppointmentStatus.PENDIENTE_DE_PAGO)
                         .reservationExpiresAt(LocalDateTime.now().plusMinutes(5))
+                        .priority(AppointmentPriority.NORMAL)
+                        .arrivalTime(null)
                         .active(true)
                         .build();
 
@@ -796,29 +797,33 @@ public class AppointmentService {
                 .build();
     }
 
+    //valida estado cancelado o expiradas de las citas para liberar el horario
     private boolean isAppointmentBlockingSlot(Appointment appointment) {
-        if (appointment.getStatus()
-                == AppointmentStatus.PAGADA) {
+        if (!Boolean.TRUE.equals(
+                appointment.getActive())) {
 
-            return true;
-        }
-
-        if (appointment.getStatus()
-                == AppointmentStatus.CONFIRMADA) {
-
-            return true;
+            return false;
         }
 
         if (appointment.getStatus()
                 == AppointmentStatus.PENDIENTE_DE_PAGO) {
 
-            return appointment
-                    .getReservationExpiresAt()
-                    .isAfter(
-                            LocalDateTime.now()
-                    );
+            LocalDateTime expiration =
+                    appointment.getReservationExpiresAt();
+
+            return expiration != null
+                    && expiration.isAfter(
+                    LocalDateTime.now()
+            );
         }
 
-        return false;
+        return appointment.getStatus()
+                == AppointmentStatus.PAGADA
+
+                || appointment.getStatus()
+                == AppointmentStatus.CONFIRMADA
+
+                || appointment.getStatus()
+                == AppointmentStatus.PACIENTE_PRESENTE;
     }
 }

@@ -246,7 +246,7 @@ public class PaymentService {
         payment.setFailureMessage(null);
 
         appointment.setStatus(
-                AppointmentStatus.PAGADA
+                AppointmentStatus.CONFIRMADA
         );
 
         /*

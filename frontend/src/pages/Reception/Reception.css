@@ -1,0 +1,241 @@
+.reception-page {
+    max-width: 1050px;
+    margin: 0 auto;
+}
+
+.reception-header h1 {
+    margin-bottom: 6px;
+    color: #111827;
+}
+
+.reception-header p {
+    margin-top: 0;
+    color: #6b7280;
+}
+
+.reception-search-card,
+.reception-result-card {
+    margin-top: 22px;
+    padding: 24px;
+    background-color: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    box-shadow:
+        0 8px 18px rgba(0, 0, 0, 0.07);
+}
+
+.search-type-buttons {
+    display: flex;
+    gap: 9px;
+    margin-bottom: 18px;
+}
+
+.search-type-button {
+    padding: 9px 15px;
+    color: #374151;
+    background-color: #e5e7eb;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.search-type-button.active {
+    color: white;
+    background-color: #2563eb;
+    border-color: #2563eb;
+}
+
+.reception-search-form {
+    display: grid;
+    grid-template-columns:
+        minmax(250px, 1fr) auto auto;
+    gap: 10px;
+}
+
+.reception-search-form input {
+    padding: 11px 12px;
+    color: #111827;
+    background-color: white;
+    border: 1px solid #9ca3af;
+    border-radius: 6px;
+}
+
+.reception-search-button,
+.reception-clear-button {
+    padding: 10px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.reception-search-button {
+    color: white;
+    background-color: #2563eb;
+    border: none;
+}
+
+.reception-clear-button {
+    color: #374151;
+    background-color: white;
+    border: 1px solid #9ca3af;
+}
+
+.reception-message {
+    margin-top: 18px;
+    padding: 14px;
+    border-radius: 7px;
+}
+
+.reception-message.error {
+    color: #b91c1c;
+    background-color: #fee2e2;
+    border: 1px solid #fca5a5;
+}
+
+.reception-message.success {
+    color: #065f46;
+    background-color: #d1fae5;
+    border: 1px solid #6ee7b7;
+}
+
+.reception-result-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 18px;
+}
+
+.reception-result-header h2 {
+    margin: 0 0 5px;
+    color: #111827;
+}
+
+.reception-result-header p {
+    margin: 0;
+    color: #6b7280;
+}
+
+.reception-labels {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.priority-label,
+.reception-status {
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.priority-label.normal {
+    color: #1e40af;
+    background-color: #dbeafe;
+}
+
+.priority-label.emergency {
+    color: white;
+    background-color: #dc2626;
+}
+
+.reception-status.confirmada {
+    color: #065f46;
+    background-color: #d1fae5;
+}
+
+.reception-status.paciente-presente {
+    color: #1e40af;
+    background-color: #dbeafe;
+}
+
+.reception-status.pendiente-de-pago {
+    color: #92400e;
+    background-color: #fef3c7;
+}
+
+.reception-status.cancelada,
+.reception-status.expirada {
+    color: #991b1b;
+    background-color: #fee2e2;
+}
+
+.reception-details {
+    display: grid;
+    grid-template-columns: repeat(2,
+            minmax(220px, 1fr));
+    gap: 14px;
+    margin: 22px 0;
+}
+
+.reception-details div {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding: 14px;
+    background-color: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 7px;
+}
+
+.reception-details span {
+    color: #6b7280;
+    font-size: 12px;
+}
+
+.reception-details strong {
+    color: #111827;
+}
+
+.reception-details .detail-wide {
+    grid-column: 1 / -1;
+}
+
+.reception-information {
+    padding: 14px;
+    color: #374151;
+    background-color: #f3f4f6;
+    border-radius: 7px;
+}
+
+.reception-information p {
+    margin-bottom: 0;
+}
+
+.reception-actions {
+    display: flex;
+    gap: 11px;
+    margin-top: 20px;
+}
+
+.empty-result {
+    text-align: center;
+}
+
+.urgent-button {
+    padding: 10px 16px;
+    color: white;
+    background-color: #dc2626;
+    border: none;
+    border-radius: 6px;
+    font-weight: 700;
+}
+
+@media (max-width: 700px) {
+    .reception-search-form {
+        grid-template-columns: 1fr;
+    }
+
+    .reception-result-header {
+        flex-direction: column;
+    }
+
+    .reception-details {
+        grid-template-columns: 1fr;
+    }
+
+    .reception-details .detail-wide {
+        grid-column: auto;
+    }
+}
