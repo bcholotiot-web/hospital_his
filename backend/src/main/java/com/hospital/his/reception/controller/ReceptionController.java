@@ -1,5 +1,6 @@
 package com.hospital.his.reception.controller;
 
+import com.hospital.his.catalogs.dto.BranchResponse;
 import com.hospital.his.reception.dto.ReceptionAppointmentResponse;
 import com.hospital.his.reception.dto.ReceptionSearchResponse;
 import com.hospital.his.reception.dto.ReassignDoctorRequest;
@@ -84,6 +85,14 @@ public class ReceptionController {
                         request,
                         authentication.getName()
                 )
+        );
+    }
+
+    @GetMapping("/branches")
+    public ResponseEntity<List<BranchResponse>>
+    getActiveBranches() {
+        return ResponseEntity.ok(
+                receptionService.getActiveBranches()
         );
     }
 }

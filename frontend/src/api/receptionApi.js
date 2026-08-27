@@ -59,3 +59,20 @@ export const reassignAppointmentDoctor = (
         getAuthHeaders()
     );
 };
+
+export const getReceptionBranches = () => {
+    return axios.get(
+        `${API_URL}/branches`,
+        getAuthHeaders()
+    );
+};
+
+export const registerEmergencyReception = (
+    data
+) => {
+    return axios.post(
+        `${API_URL}/emergencies`,
+        data,
+        getAuthHeaders()
+    );
+};

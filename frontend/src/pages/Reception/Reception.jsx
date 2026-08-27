@@ -13,6 +13,8 @@ import "./Reception.css";
 import ReassignDoctorModal
     from "./ReassignDoctorModal";
 
+import EmergencyReceptionModal from "./EmergencyReceptionModal";
+
 function Reception() {
     const navigate = useNavigate();
 
@@ -39,6 +41,30 @@ function Reception() {
 
     const [showReassignModal, setShowReassignModal] =
         useState(false);
+
+    const [showEmergencyModal, setShowEmergencyModal] = useState(false);
+
+    const [emergencyResult, setEmergencyResult] = useState(null);
+
+    const maskDpi = (dpi) => {
+        if (!dpi) {
+            return "No registrado";
+        }
+
+        const cleanDpi = String(dpi).trim();
+
+        if (cleanDpi.length <= 4) {
+            return cleanDpi;
+        }
+
+        const hiddenDigits = "*".repeat(
+            cleanDpi.length - 4
+        );
+
+        const lastFourDigits = cleanDpi.slice(-4);
+
+        return `${hiddenDigits}${lastFourDigits}`;
+    };
 
     const validateSearch = () => {
         const cleanValue =
@@ -192,14 +218,27 @@ function Reception() {
         <MainLayout>
             <div className="reception-page">
                 <div className="reception-header">
-                    <h1>
-                        Recepción y Verificación de Cita
-                    </h1>
+                    <div>
+                        <h1>
+                            Recepción y Verificación de Cita
+                        </h1>
 
-                    <p>
-                        Busque la cita del paciente y registre
-                        su llegada a la clínica.
-                    </p>
+                        <p>
+                            Busque la cita del paciente y registre
+                            su llegada a la clínica.
+                        </p>
+                    </div>
+
+                    <button
+                        type="button"
+                        className="register-emergency-button"
+                        onClick={() => {
+                            setEmergencyResult(null);
+                            setShowEmergencyModal(true);
+                        }}
+                    >
+                        Registrar Emergencia
+                    </button>
                 </div>
 
                 <section className="reception-search-card">
@@ -346,6 +385,113 @@ function Reception() {
                             setShowReassignModal(false);
                         }}
                     />
+                )}
+
+                {showEmergencyModal && (
+                    <EmergencyReceptionModal
+                        onClose={() =>
+                            setShowEmergencyModal(false)
+                        }
+                        onRegistered={(result) => {
+                            setEmergencyResult(result);
+                            setShowEmergencyModal(false);
+
+                            setSuccessMessage(
+                                result.message
+                            );
+
+                            setErrorMessage("");
+                            setSearchResult(null);
+                        }}
+                    />
+                )}
+
+                {emergencyResult && (
+                    <section className="emergency-result-card">
+                        <div className="emergency-result-header">
+                            <div>
+                                <h2>
+                                    {emergencyResult.patientName}
+                                </h2>
+
+                                <p>
+                                    Registro de emergencia
+                                    #{emergencyResult.emergencyReceptionId}
+                                </p>
+                            </div>
+
+                            <span className="emergency-priority-badge">
+                                EMERGENCIA
+                            </span>
+                        </div>
+
+                        <div className="emergency-result-details">
+                            <div>
+                                <span>DPI</span>
+
+                                <strong>
+                                    {maskDpi(
+                                        emergencyResult.patientDpi
+                                    )}
+                                </strong>
+                            </div>
+
+                            <div>
+                                <span>Sucursal</span>
+
+                                <strong>
+                                    {emergencyResult.branch}
+                                </strong>
+                            </div>
+
+                            <div>
+                                <span>Estado</span>
+
+                                <strong>
+                                    {emergencyResult.status
+                                        .replaceAll("_", " ")}
+                                </strong>
+                            </div>
+
+                            <div>
+                                <span>Hora de llegada</span>
+
+                                <strong>
+                                    {formatDateTime(
+                                        emergencyResult.arrivalTime
+                                    )}
+                                </strong>
+                            </div>
+
+                            <div className="emergency-detail-wide">
+                                <span>Nota</span>
+
+                                <strong>
+                                    {emergencyResult.emergencyNote ||
+                                        "Sin nota adicional"}
+                                </strong>
+                            </div>
+                        </div>
+
+                        <div className="emergency-next-step">
+                            <strong>
+                                Atención inmediata requerida
+                            </strong>
+
+                            <p>
+                                El paciente debe pasar directamente
+                                a toma de signos vitales.
+                            </p>
+                        </div>
+
+                        <button
+                            type="button"
+                            className="urgent-button"
+                            disabled
+                        >
+                            Signos Vitales Urgente
+                        </button>
+                    </section>
                 )}
             </div>
         </MainLayout>
@@ -546,6 +692,8 @@ function ReceptionResult({
                             Signos Vitales Urgente
                         </button>
                     )}
+
+
             </div>
         </section>
     );

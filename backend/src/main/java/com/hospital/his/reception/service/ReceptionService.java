@@ -5,6 +5,8 @@ import com.hospital.his.appointments.entity.AppointmentPriority;
 import com.hospital.his.appointments.entity.AppointmentStatus;
 import com.hospital.his.appointments.repository.AppointmentRepository;
 import com.hospital.his.audit.service.AuditService;
+import com.hospital.his.catalogs.dto.BranchResponse;
+import com.hospital.his.catalogs.repository.BranchRepository;
 import com.hospital.his.reception.dto.ReassignDoctorRequest;
 import com.hospital.his.reception.dto.ReceptionAppointmentResponse;
 import com.hospital.his.reception.dto.ReceptionDoctorResponse;
@@ -39,10 +41,13 @@ public class ReceptionService {
 
     private final AuditService auditService;
 
-    public ReceptionService(AppointmentRepository appointmentRepository, UserRepository userRepository, AuditService auditService) {
+    private final BranchRepository branchRepository;
+
+    public ReceptionService(AppointmentRepository appointmentRepository, UserRepository userRepository, AuditService auditService, BranchRepository branchRepository) {
         this.appointmentRepository = appointmentRepository;
         this.userRepository = userRepository;
         this.auditService = auditService;
+        this.branchRepository = branchRepository;
     }
 
     @Transactional(readOnly = true)
@@ -476,6 +481,32 @@ public class ReceptionService {
                 appointment,
                 "Médico reasignado correctamente."
         );
+    }
+
+    @Transactional(readOnly = true)
+    public List<BranchResponse> getActiveBranches() {
+
+        List<BranchResponse> branches =
+                branchRepository
+                        .findByActiveTrue()
+                        .stream()
+                        .map(branch ->
+                                BranchResponse.builder()
+                                        .id(branch.getId())
+                                        .name(branch.getName())
+                                        .address(branch.getAddress())
+                                        .active(branch.getActive())
+                                        .build()
+                        )
+                        .toList();
+
+        if (branches.isEmpty()) {
+            throw new RuntimeException(
+                    "No hay sucursales activas disponibles."
+            );
+        }
+
+        return branches;
     }
 
     private void validateReassignmentStatus(Appointment appointment) {
