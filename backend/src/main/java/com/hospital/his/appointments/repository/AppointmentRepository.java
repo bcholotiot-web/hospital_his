@@ -76,4 +76,10 @@ public interface AppointmentRepository
             AppointmentStatus status
     );
 
+    //Signos vitales CU-07
+    List<Appointment>
+    findByStatusInAndActiveTrueOrderByPriorityDescArrivalTimeAsc(
+            Collection<AppointmentStatus> statuses
+    );
+
 }

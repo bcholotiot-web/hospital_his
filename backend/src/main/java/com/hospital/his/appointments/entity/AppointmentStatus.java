@@ -5,6 +5,8 @@ public enum AppointmentStatus {
     PAGADA,
     CONFIRMADA,
     PACIENTE_PRESENTE,
+    SIGNOS_VITALES,
+    SIGNOS_REGISTRADOS,
     CANCELADA,
     EXPIRADA
 }

@@ -1,0 +1,226 @@
+.vital-modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background-color: rgba(17, 24, 39, 0.7);
+}
+
+.vital-modal {
+    width: 100%;
+    max-width: 800px;
+    max-height: 94vh;
+    overflow-y: auto;
+    padding: 26px;
+    background-color: white;
+    border-radius: 13px;
+    box-shadow:
+        0 22px 55px rgba(0, 0, 0, 0.3);
+}
+
+.vital-modal-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 18px;
+}
+
+.vital-modal-header h2 {
+    margin: 0 0 5px;
+    color: #111827;
+}
+
+.vital-modal-header p {
+    margin: 0;
+    color: #6b7280;
+}
+
+.vital-close-button {
+    width: 38px;
+    height: 38px;
+    flex-shrink: 0;
+    color: #374151;
+    background-color: #f3f4f6;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 25px;
+}
+
+.vital-patient-context {
+    display: grid;
+    grid-template-columns: repeat(2,
+            minmax(200px, 1fr));
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.vital-patient-context div {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 12px;
+    background-color: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 7px;
+}
+
+.vital-patient-context span {
+    color: #6b7280;
+    font-size: 12px;
+}
+
+.vital-patient-context strong {
+    color: #111827;
+}
+
+.vital-patient-context .emergency-context {
+    color: #b91c1c;
+}
+
+.vital-general-error {
+    margin-bottom: 18px;
+    padding: 13px;
+    color: #b91c1c;
+    background-color: #fee2e2;
+    border: 1px solid #fca5a5;
+    border-radius: 7px;
+}
+
+.vital-alerts {
+    margin-bottom: 20px;
+    padding: 16px;
+    color: #92400e;
+    background-color: #fef3c7;
+    border: 1px solid #fcd34d;
+    border-radius: 8px;
+}
+
+.vital-alerts h3 {
+    margin: 0 0 6px;
+}
+
+.vital-alerts p {
+    margin: 0 0 10px;
+}
+
+.vital-alerts ul {
+    margin-bottom: 0;
+    padding-left: 20px;
+}
+
+.vital-alerts li {
+    margin-bottom: 7px;
+}
+
+.vital-fieldset {
+    margin: 0 0 18px;
+    padding: 16px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+}
+
+.vital-fieldset legend {
+    padding: 0 7px;
+    color: #374151;
+    font-weight: 700;
+}
+
+.vital-form-grid {
+    display: grid;
+    grid-template-columns: repeat(2,
+            minmax(220px, 1fr));
+    gap: 16px;
+}
+
+.vital-form-group {
+    margin-bottom: 4px;
+}
+
+.vital-form-group label {
+    display: block;
+    margin-bottom: 6px;
+    color: #374151;
+    font-weight: 600;
+}
+
+.vital-input-wrapper {
+    display: flex;
+    align-items: stretch;
+}
+
+.vital-input-wrapper input {
+    width: 100%;
+    min-width: 0;
+    padding: 10px 12px;
+    color: #111827;
+    background-color: white;
+    border: 1px solid #9ca3af;
+    border-right: none;
+    border-radius: 6px 0 0 6px;
+}
+
+.vital-input-wrapper span {
+    display: flex;
+    align-items: center;
+    padding: 0 11px;
+    color: #4b5563;
+    background-color: #f3f4f6;
+    border: 1px solid #9ca3af;
+    border-radius: 0 6px 6px 0;
+}
+
+.vital-form-group small {
+    display: block;
+    margin-top: 5px;
+    color: #6b7280;
+}
+
+.vital-input-wrapper input.input-error {
+    border: 2px solid #dc2626;
+    border-right: none;
+}
+
+.emergency-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    margin-top: 20px;
+    padding: 13px;
+    color: #991b1b;
+    background-color: #fee2e2;
+    border: 1px solid #fca5a5;
+    border-radius: 7px;
+    font-weight: 700;
+}
+
+.emergency-checkbox input {
+    width: 18px;
+    height: 18px;
+}
+
+.vital-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 22px;
+}
+
+@media (max-width: 650px) {
+
+    .vital-patient-context,
+    .vital-form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .vital-modal-actions {
+        flex-direction: column-reverse;
+    }
+
+    .vital-modal-actions button {
+        width: 100%;
+    }
+}

@@ -22,6 +22,11 @@ function MainLayout({ children }) {
         role === "CAJERO" ||
         role === "Cajero";
 
+    const isNursing =
+        role === "ENFERMERIA" ||
+        role === "Enfermeria" ||
+        role === "Enfermería";
+
     const handleLogout = () => {
         localStorage.removeItem("token");
         localStorage.removeItem("role");
@@ -106,6 +111,15 @@ function MainLayout({ children }) {
                             className="main-sidebar-link"
                         >
                             Cobro en Caja
+                        </Link>
+                    )}
+
+                    {isNursing && (
+                        <Link
+                            to="/nursing"
+                            className="main-sidebar-link"
+                        >
+                            Signos Vitales
                         </Link>
                     )}
                 </nav>

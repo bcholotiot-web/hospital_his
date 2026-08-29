@@ -13,6 +13,7 @@ import PaymentConfirmation from "../pages/Payments/PaymentConfirmation";
 import MyAppointments from "../pages/Appointments/MyAppointments";
 import Reception from "../pages/Reception/Reception";
 import Cashier from "../pages/Cashier/Cashier";
+import NursingDashboard from "../pages/Nursing/NursingDashboard";
 
 function AppRouter() {
 
@@ -32,6 +33,7 @@ function AppRouter() {
                 <Route path="/appointments" element={<PrivateRoute allowedRoles={["PACIENTE", "Paciente"]}><MyAppointments /></PrivateRoute>} />
                 <Route path="/reception" element={<PrivateRoute allowedRoles={["RECEPCIONISTA", "Recepcionista"]}><Reception /></PrivateRoute>} />
                 <Route path="/cashier" element={<PrivateRoute allowedRoles={["CAJERO", "Cajero"]}><Cashier /></PrivateRoute>} />
+                <Route path="/nursing" element={<PrivateRoute allowedRoles={["ENFERMERIA", "Enfermeria", "Enfermería"]}><NursingDashboard /></PrivateRoute>} />
             </Routes>
         </BrowserRouter>
     );

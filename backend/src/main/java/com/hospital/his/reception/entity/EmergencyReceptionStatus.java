@@ -6,6 +6,8 @@ public enum EmergencyReceptionStatus {
 
     EN_SIGNOS_VITALES,
 
+    SIGNOS_REGISTRADOS,
+
     EN_ATENCION,
 
     FINALIZADA,

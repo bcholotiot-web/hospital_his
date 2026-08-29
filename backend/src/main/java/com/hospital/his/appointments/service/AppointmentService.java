@@ -234,7 +234,7 @@ public class AppointmentService {
         List<User> doctors =
                 userRepository
                         .findByRole_NameAndBranch_IdAndSpecialty_IdAndActiveTrue(
-                                "Médico",
+                                "MEDICO",
                                 branchId,
                                 specialtyId
                         );

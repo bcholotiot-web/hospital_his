@@ -1,14 +1,60 @@
-✅ Solo pacientes autenticados pueden agendar
-✅ Paciente obtenido desde el JWT, no desde localStorage
-✅ Sucursales activas
-✅ Especialidades activas configuradas en la sucursal
-✅ Médicos activos asignados a sucursal y especialidad
-✅ Fechas futuras o actuales válidas
-✅ Horarios ocupados no seleccionables
-✅ Protección contra doble reserva
-✅ Motivo entre 10 y 2000 caracteres
-✅ Estado PENDIENTE_DE_PAGO
-✅ Auditoría con usuario autenticado
-✅ Wizard de 5 pasos
-✅ Regreso a pasos anteriores y limpieza de selecciones posteriores
-✅ Preparación para CU-04
+CU-06 Finalizado
+se reinicia los datos de la BDD
+
+
+La arquitectura que estamos usando para el proyecto
+Monolito modular con arquitectura por capas,
+basado en Spring MVC y una SPA React.
+
+React
+└── Vista y presentación
+
+Spring Boot
+├── Controller
+├── Service
+├── Repository
+├── Entity
+└── DTO
+
+PostgreSQL
+└── Persistencia
+
+Modelo:
+Entities, repositories, services y base de datos.
+
+Vista:
+Frontend React.
+
+Controlador:
+Clases @RestController de Spring Boot.
+
+
+// Tablas actuales
+
+appointments
+audit_logs
+branch_specialties
+branches
+emergency_receptions
+patients
+payments
+roles
+specialties
+users
+
+//Usuarios de prueba 
+admin001 -> AdminPrueba123
+recep001 -> RecepPrueba123
+cajero01 -> CajeroPrueba123
+
+//Pacientes
+Paciente 1
+Usuario: paciente1
+Contraseña: PacientePrueba123
+
+Paciente 2
+Usuario: paciente2
+Contraseña: PacientePrueba123
+
+Usuario: enfer01
+Contraseña: EnfermeriaPrueba123
