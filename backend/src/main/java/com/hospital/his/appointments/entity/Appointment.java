@@ -71,6 +71,13 @@ public class Appointment {
     @Column(nullable = false,length = 20)
     private AppointmentPriority priority;
 
+    @Enumerated(EnumType.STRING)
+    @Column(
+            nullable = false,
+            length = 20
+    )
+    private AppointmentOrigin origin;
+
     @Column(name = "arrival_time")
     private LocalDateTime arrivalTime;
 

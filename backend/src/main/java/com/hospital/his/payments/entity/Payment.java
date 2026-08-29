@@ -7,6 +7,7 @@ import lombok.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
+import java.math.BigDecimal;
 
 @Entity
 @Table(
@@ -133,4 +134,32 @@ public class Payment {
             name = "processed_at"
     )
     private LocalDateTime processedAt;
+
+    @Enumerated(EnumType.STRING)
+    @Column(
+            name = "payment_method",
+            nullable = false,
+            length = 20
+    )
+    private PaymentMethod paymentMethod;
+
+    @Column(
+            name = "received_amount",
+            precision = 10,
+            scale = 2
+    )
+    private BigDecimal receivedAmount;
+
+    @Column(
+            name = "change_amount",
+            precision = 10,
+            scale = 2
+    )
+    private BigDecimal changeAmount;
+
+    @Column(
+            name = "cashier_username",
+            length = 50
+    )
+    private String cashierUsername;
 }

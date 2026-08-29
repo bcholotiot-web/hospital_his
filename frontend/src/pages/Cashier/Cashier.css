@@ -1,0 +1,200 @@
+.cashier-page {
+    max-width: 1100px;
+    margin: 0 auto;
+}
+
+.cashier-header h1 {
+    margin-bottom: 6px;
+    color: #111827;
+}
+
+.cashier-header p {
+    margin-top: 0;
+    color: #6b7280;
+}
+
+.cashier-search-card,
+.cashier-appointment-card,
+.cashier-payment-card {
+    padding: 22px;
+    background-color: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 11px;
+    box-shadow:
+        0 7px 17px rgba(0, 0, 0, 0.07);
+}
+
+.cashier-search-card {
+    margin-top: 22px;
+}
+
+.cashier-search-types {
+    display: flex;
+    gap: 9px;
+    margin-bottom: 16px;
+}
+
+.cashier-search-type {
+    padding: 9px 14px;
+    color: #374151;
+    background-color: #e5e7eb;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.cashier-search-type.active {
+    color: white;
+    background-color: #2563eb;
+    border-color: #2563eb;
+}
+
+.cashier-search-form {
+    display: grid;
+    grid-template-columns:
+        minmax(250px, 1fr) auto;
+    gap: 10px;
+    align-items: start;
+}
+
+.cashier-search-form input {
+    width: 100%;
+    padding: 11px 12px;
+    color: #111827;
+    background-color: white;
+    border: 1px solid #9ca3af;
+    border-radius: 6px;
+}
+
+.cashier-message {
+    margin-top: 18px;
+    padding: 14px;
+    border-radius: 7px;
+}
+
+.cashier-message.error {
+    color: #b91c1c;
+    background-color: #fee2e2;
+    border: 1px solid #fca5a5;
+}
+
+.cashier-message.success {
+    color: #065f46;
+    background-color: #d1fae5;
+    border: 1px solid #6ee7b7;
+}
+
+.cashier-content {
+    display: grid;
+    grid-template-columns:
+        minmax(280px, 0.9fr) minmax(320px, 1.1fr);
+    gap: 22px;
+    margin-top: 22px;
+}
+
+.cashier-appointment-card h2,
+.cashier-payment-card h2 {
+    margin-top: 0;
+    color: #111827;
+}
+
+.cashier-details p {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.cashier-details span {
+    color: #6b7280;
+    font-size: 12px;
+}
+
+.cashier-details strong {
+    color: #111827;
+}
+
+.cashier-details .cashier-total {
+    padding: 14px;
+    background-color: #dbeafe;
+    border: 1px solid #93c5fd;
+    border-radius: 7px;
+}
+
+.cashier-total strong {
+    color: #1e40af;
+    font-size: 24px;
+}
+
+.cashier-form-group {
+    margin-bottom: 17px;
+}
+
+.cashier-form-group label {
+    display: block;
+    margin-bottom: 6px;
+    color: #374151;
+    font-weight: 600;
+}
+
+.cashier-form-group input,
+.cashier-form-group select {
+    width: 100%;
+    padding: 11px 12px;
+    color: #111827;
+    background-color: white;
+    border: 1px solid #9ca3af;
+    border-radius: 6px;
+}
+
+.cashier-change {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 18px;
+    padding: 14px;
+    color: #065f46;
+    background-color: #d1fae5;
+    border: 1px solid #6ee7b7;
+    border-radius: 7px;
+}
+
+.cashier-test-notice {
+    margin-bottom: 16px;
+    padding: 11px;
+    color: #92400e;
+    background-color: #fef3c7;
+    border: 1px solid #fcd34d;
+    border-radius: 6px;
+}
+
+.cashier-pay-button {
+    width: 100%;
+    padding: 12px;
+    color: white;
+    background-color: #2563eb;
+    border: none;
+    border-radius: 7px;
+    cursor: pointer;
+    font-weight: 700;
+}
+
+.cashier-pay-button:hover {
+    background-color: #1d4ed8;
+}
+
+.cashier-pay-button:disabled {
+    background-color: #9ca3af;
+    cursor: not-allowed;
+}
+
+@media (max-width: 800px) {
+    .cashier-content {
+        grid-template-columns: 1fr;
+    }
+
+    .cashier-search-form {
+        grid-template-columns: 1fr;
+    }
+}

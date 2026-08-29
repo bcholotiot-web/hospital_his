@@ -12,6 +12,7 @@ import PaymentPage from "../pages/Payments/PaymentPage";
 import PaymentConfirmation from "../pages/Payments/PaymentConfirmation";
 import MyAppointments from "../pages/Appointments/MyAppointments";
 import Reception from "../pages/Reception/Reception";
+import Cashier from "../pages/Cashier/Cashier";
 
 function AppRouter() {
 
@@ -30,6 +31,7 @@ function AppRouter() {
                 <Route path="/payments/:appointmentId" element={<PrivateRoute allowedRoles={["PACIENTE", "Paciente"]}><PaymentPage /></PrivateRoute>} />
                 <Route path="/appointments" element={<PrivateRoute allowedRoles={["PACIENTE", "Paciente"]}><MyAppointments /></PrivateRoute>} />
                 <Route path="/reception" element={<PrivateRoute allowedRoles={["RECEPCIONISTA", "Recepcionista"]}><Reception /></PrivateRoute>} />
+                <Route path="/cashier" element={<PrivateRoute allowedRoles={["CAJERO", "Cajero"]}><Cashier /></PrivateRoute>} />
             </Routes>
         </BrowserRouter>
     );

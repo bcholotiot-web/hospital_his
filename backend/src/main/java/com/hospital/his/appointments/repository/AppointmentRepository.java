@@ -64,4 +64,16 @@ public interface AppointmentRepository
             String dpi
     );
 
+    Optional<Appointment>
+    findByIdAndStatusAndActiveTrue(
+            Long appointmentId,
+            AppointmentStatus status
+    );
+
+    List<Appointment>
+    findByPatient_DpiAndStatusAndActiveTrueOrderByAppointmentDateTimeDesc(
+            String dpi,
+            AppointmentStatus status
+    );
+
 }

@@ -59,6 +59,9 @@ public class SecurityConfig {
                         .requestMatchers("/api/reception/**")
                         .hasRole("RECEPCIONISTA")
 
+                        .requestMatchers("/api/cashier/**")
+                        .hasRole("CAJERO")
+
                         .anyRequest()
                         .authenticated())
                 .addFilterBefore(

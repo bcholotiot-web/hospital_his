@@ -1,0 +1,98 @@
+.cashier-receipt {
+    max-width: 700px;
+    margin: 24px auto;
+    padding: 28px;
+    text-align: center;
+    background-color: white;
+    border: 1px solid #d1fae5;
+    border-radius: 12px;
+    box-shadow:
+        0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+.receipt-success-icon {
+    width: 68px;
+    height: 68px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 15px;
+    color: white;
+    background-color: #10b981;
+    border-radius: 50%;
+    font-size: 36px;
+    font-weight: 700;
+}
+
+.cashier-receipt h2 {
+    color: #065f46;
+}
+
+.receipt-message {
+    color: #374151;
+}
+
+.receipt-content {
+    margin-top: 24px;
+    padding: 22px;
+    text-align: left;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+}
+
+.receipt-hospital {
+    padding-bottom: 14px;
+    text-align: center;
+    border-bottom: 2px dashed #d1d5db;
+}
+
+.receipt-hospital h3 {
+    margin: 0;
+    color: #111827;
+}
+
+.receipt-hospital p {
+    margin: 5px 0 0;
+    color: #6b7280;
+}
+
+.receipt-details p {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 9px 0;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.receipt-details span {
+    color: #6b7280;
+}
+
+.receipt-details strong {
+    color: #111827;
+    text-align: right;
+}
+
+.receipt-actions {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 22px;
+}
+
+@media print {
+
+    .main-sidebar,
+    .receipt-actions {
+        display: none !important;
+    }
+
+    .main-content {
+        padding: 0 !important;
+    }
+
+    .cashier-receipt {
+        box-shadow: none;
+        border: none;
+    }
+}

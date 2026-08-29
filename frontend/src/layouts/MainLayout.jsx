@@ -18,6 +18,10 @@ function MainLayout({ children }) {
         role === "RECEPCIONISTA" ||
         role === "Recepcionista";
 
+    const isCashier =
+        role === "CAJERO" ||
+        role === "Cajero";
+
     const handleLogout = () => {
         localStorage.removeItem("token");
         localStorage.removeItem("role");
@@ -93,6 +97,15 @@ function MainLayout({ children }) {
                             className="main-sidebar-link"
                         >
                             Recepción de Pacientes
+                        </Link>
+                    )}
+
+                    {isCashier && (
+                        <Link
+                            to="/cashier"
+                            className="main-sidebar-link"
+                        >
+                            Cobro en Caja
                         </Link>
                     )}
                 </nav>

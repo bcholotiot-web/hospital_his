@@ -37,4 +37,12 @@ public class PaymentResponse {
     private String appointmentDateTime;
 
     private String message;
+
+    private String paymentMethod;
+
+    private BigDecimal receivedAmount;
+
+    private BigDecimal changeAmount;
+
+    private String cashierUsername;
 }

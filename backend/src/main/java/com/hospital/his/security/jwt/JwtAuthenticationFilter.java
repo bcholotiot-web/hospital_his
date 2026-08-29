@@ -14,7 +14,9 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
+import java.text.Normalizer;
 import java.util.Collections;
+import java.util.Locale;
 import java.util.List;
 
 @Component
@@ -52,11 +54,34 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter{
 
         String username = jwtService.extractUsername(token);
         String role = jwtService.extractRole(token);
-        System.out.println("USERNAME: " + username);
-        System.out.println("ROLE: " + role);
+        String normalizedRole = normalizeRole(role);
+        List<SimpleGrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("ROLE_" + normalizedRole));
+        UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(username, null, authorities);
 
-        UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(username, null,List.of(new SimpleGrantedAuthority("ROLE_" + role)));
         SecurityContextHolder.getContext().setAuthentication(authentication);
         filterChain.doFilter(request, response);
     }
+
+    private String normalizeRole(String role) {
+        if (role == null || role.isBlank()) {
+            return "";
+        }
+
+        String normalizedRole =
+                Normalizer.normalize(
+                        role.trim(),
+                        Normalizer.Form.NFD
+                );
+
+        normalizedRole =
+                normalizedRole.replaceAll(
+                        "\\p{M}",
+                        ""
+                );
+
+        return normalizedRole.toUpperCase(
+                Locale.ROOT
+        );
+    }
+
 }

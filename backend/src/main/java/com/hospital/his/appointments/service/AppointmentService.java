@@ -5,6 +5,7 @@ import com.hospital.his.appointments.dto.AvailableSlotResponse;
 import com.hospital.his.appointments.dto.CreateAppointmentRequest;
 import com.hospital.his.appointments.dto.DoctorResponse;
 import com.hospital.his.appointments.entity.Appointment;
+import com.hospital.his.appointments.entity.AppointmentOrigin;
 import com.hospital.his.appointments.entity.AppointmentPriority;
 import com.hospital.his.appointments.entity.AppointmentStatus;
 import com.hospital.his.appointments.repository.AppointmentRepository;
@@ -568,6 +569,7 @@ public class AppointmentService {
                         .status(AppointmentStatus.PENDIENTE_DE_PAGO)
                         .reservationExpiresAt(LocalDateTime.now().plusMinutes(5))
                         .priority(AppointmentPriority.NORMAL)
+                        .origin(AppointmentOrigin.PORTAL)
                         .arrivalTime(null)
                         .active(true)
                         .build();

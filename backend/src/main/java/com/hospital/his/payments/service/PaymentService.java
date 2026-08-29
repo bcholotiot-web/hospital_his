@@ -9,6 +9,7 @@ import com.hospital.his.payments.dto.PaymentResponse;
 import com.hospital.his.payments.dto.PaymentSummaryResponse;
 import com.hospital.his.payments.dto.ProcessPaymentRequest;
 import com.hospital.his.payments.entity.Payment;
+import com.hospital.his.payments.entity.PaymentMethod;
 import com.hospital.his.payments.entity.PaymentStatus;
 import com.hospital.his.payments.gateway.GatewayPaymentResult;
 import com.hospital.his.payments.gateway.PaymentGateway;
@@ -101,6 +102,10 @@ public class PaymentService {
                         .failureMessage(null)
                         .createdAt(LocalDateTime.now())
                         .processedAt(null)
+                        .paymentMethod(PaymentMethod.EN_LINEA)
+                        .receivedAmount(null)
+                        .changeAmount(null)
+                        .cashierUsername(null)
                         .build();
 
         /*
@@ -333,10 +338,7 @@ public class PaymentService {
         );
     }
 
-    private void validateRequest(
-            ProcessPaymentRequest request,
-            String authenticatedUsername
-    ) {
+    private void validateRequest(ProcessPaymentRequest request, String authenticatedUsername) {
         if (authenticatedUsername == null ||
                 authenticatedUsername.isBlank()) {
 
@@ -467,6 +469,20 @@ public class PaymentService {
                 .appointmentDateTime(appointment.getAppointmentDateTime().toString()
                 )
                 .message(message)
+                .paymentMethod(
+                        payment.getPaymentMethod() != null
+                                ? payment.getPaymentMethod().name()
+                                : null
+                )
+                .receivedAmount(
+                        payment.getReceivedAmount()
+                )
+                .changeAmount(
+                        payment.getChangeAmount()
+                )
+                .cashierUsername(
+                        payment.getCashierUsername()
+                )
                 .build();
     }
 }
