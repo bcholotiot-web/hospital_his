@@ -82,4 +82,17 @@ public interface AppointmentRepository
             Collection<AppointmentStatus> statuses
     );
 
+    //Muestra unicamente la cita asignado al medico logueado
+    List<Appointment>
+    findByDoctor_UsernameAndStatusInAndActiveTrueOrderByPriorityDescArrivalTimeAsc(
+            String doctorUsername,
+            Collection<AppointmentStatus> statuses
+    );
+
+    Optional<Appointment>
+    findByIdAndDoctor_Username(
+            Long appointmentId,
+            String doctorUsername
+    );
+
 }

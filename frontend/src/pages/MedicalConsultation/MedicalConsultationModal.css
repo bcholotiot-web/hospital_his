@@ -1,0 +1,255 @@
+.medical-modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1300;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background-color: rgba(17, 24, 39, 0.72);
+}
+
+.medical-modal {
+    width: 100%;
+    max-width: 900px;
+    max-height: 94vh;
+    overflow-y: auto;
+    padding: 26px;
+    background-color: white;
+    border-radius: 13px;
+    box-shadow:
+        0 22px 55px rgba(0, 0, 0, 0.3);
+}
+
+.medical-modal-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 18px;
+}
+
+.medical-modal-header h2 {
+    margin: 0 0 5px;
+    color: #111827;
+}
+
+.medical-modal-header p {
+    margin: 0;
+    color: #6b7280;
+}
+
+.medical-close-button {
+    width: 38px;
+    height: 38px;
+    flex-shrink: 0;
+    color: #374151;
+    background-color: #f3f4f6;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 24px;
+}
+
+.medical-error {
+    margin-bottom: 18px;
+    padding: 13px;
+    color: #b91c1c;
+    background-color: #fee2e2;
+    border: 1px solid #fca5a5;
+    border-radius: 7px;
+}
+
+.medical-context {
+    display: grid;
+    grid-template-columns: repeat(2,
+            minmax(200px, 1fr));
+    gap: 10px;
+    margin-bottom: 18px;
+}
+
+.medical-context div {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 12px;
+    background-color: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 7px;
+}
+
+.medical-context span,
+.medical-vitals span {
+    color: #6b7280;
+    font-size: 12px;
+}
+
+.medical-context strong,
+.medical-vitals strong {
+    color: #111827;
+}
+
+.medical-context .medical-emergency {
+    color: #b91c1c;
+}
+
+.medical-vitals {
+    margin-bottom: 20px;
+    padding: 16px;
+    background-color: #eff6ff;
+    border: 1px solid #93c5fd;
+    border-radius: 8px;
+}
+
+.medical-vitals h3 {
+    margin-top: 0;
+    color: #1e3a8a;
+}
+
+.medical-vitals-grid {
+    display: grid;
+    grid-template-columns: repeat(3,
+            minmax(150px, 1fr));
+    gap: 10px;
+}
+
+.medical-vitals-grid p {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin: 0;
+    padding: 10px;
+    background-color: white;
+    border-radius: 6px;
+}
+
+.medical-clinical-alerts {
+    margin-top: 14px;
+    padding: 13px;
+    color: #92400e;
+    background-color: #fef3c7;
+    border: 1px solid #fcd34d;
+    border-radius: 7px;
+}
+
+.medical-form-group {
+    position: relative;
+    margin-bottom: 18px;
+}
+
+.medical-form-group label {
+    display: block;
+    margin-bottom: 6px;
+    color: #374151;
+    font-weight: 600;
+}
+
+.medical-form-group textarea,
+.medical-form-group input,
+.medical-form-group select {
+    width: 100%;
+    padding: 10px 12px;
+    color: #111827;
+    background-color: white;
+    border: 1px solid #9ca3af;
+    border-radius: 6px;
+    font-family: inherit;
+}
+
+.medical-form-group textarea {
+    resize: vertical;
+}
+
+.medical-counter {
+    display: block;
+    margin-top: 4px;
+    color: #6b7280;
+    text-align: right;
+}
+
+.icd10-input-row {
+    display: flex;
+    gap: 8px;
+}
+
+.icd10-clear-button {
+    padding: 8px 12px;
+    color: #374151;
+    background-color: white;
+    border: 1px solid #9ca3af;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.icd10-results {
+    position: absolute;
+    z-index: 20;
+    width: 100%;
+    max-height: 260px;
+    overflow-y: auto;
+    background-color: white;
+    border: 1px solid #d1d5db;
+    border-radius: 7px;
+    box-shadow:
+        0 10px 22px rgba(0, 0, 0, 0.15);
+}
+
+.icd10-result {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 11px;
+    text-align: left;
+    background-color: white;
+    border: none;
+    border-bottom: 1px solid #f3f4f6;
+    cursor: pointer;
+}
+
+.icd10-result:hover {
+    background-color: #eff6ff;
+}
+
+.icd10-result strong {
+    color: #1d4ed8;
+}
+
+.icd10-result span {
+    color: #374151;
+}
+
+.icd10-empty {
+    padding: 14px;
+    color: #6b7280;
+}
+
+.icd10-selected {
+    margin-top: 8px;
+    padding: 9px;
+    color: #065f46;
+    background-color: #d1fae5;
+    border-radius: 6px;
+}
+
+.medical-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 22px;
+}
+
+@media (max-width: 700px) {
+
+    .medical-context,
+    .medical-vitals-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .medical-modal-actions {
+        flex-direction: column-reverse;
+    }
+
+    .medical-modal-actions button {
+        width: 100%;
+    }
+}

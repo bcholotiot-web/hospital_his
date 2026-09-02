@@ -58,3 +58,6 @@ Contraseña: PacientePrueba123
 
 Usuario: enfer01
 Contraseña: EnfermeriaPrueba123
+
+Usuario: medped01
+Contraseña: MedicoPrueba123

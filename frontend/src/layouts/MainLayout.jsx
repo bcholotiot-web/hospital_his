@@ -27,6 +27,11 @@ function MainLayout({ children }) {
         role === "Enfermeria" ||
         role === "Enfermería";
 
+    const isDoctor =
+        role === "MEDICO" ||
+        role === "Medico" ||
+        role === "Médico";
+
     const handleLogout = () => {
         localStorage.removeItem("token");
         localStorage.removeItem("role");
@@ -120,6 +125,15 @@ function MainLayout({ children }) {
                             className="main-sidebar-link"
                         >
                             Signos Vitales
+                        </Link>
+                    )}
+
+                    {isDoctor && (
+                        <Link
+                            to="/doctor"
+                            className="main-sidebar-link"
+                        >
+                            Consultas Médicas
                         </Link>
                     )}
                 </nav>

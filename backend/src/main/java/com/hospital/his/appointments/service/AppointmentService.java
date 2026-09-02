@@ -167,10 +167,7 @@ public class AppointmentService {
      * obtiene médicos activos asociados con la sucursal
      * y la especialidad seleccionadas.
      */
-    public List<DoctorResponse> getDoctorsByBranchAndSpecialty(
-            Long branchId,
-            Long specialtyId
-    ) {
+    public List<DoctorResponse> getDoctorsByBranchAndSpecialty(Long branchId, Long specialtyId) {
         if (branchId == null) {
             throw new RuntimeException(
                     "Debe seleccionar una sucursal."
