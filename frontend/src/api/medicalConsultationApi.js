@@ -84,3 +84,36 @@ export const searchIcd10Codes = (
         }
     );
 };
+
+export const getDoctorLaboratoryTests = () => {
+    return axios.get(
+        `${API_URL}/laboratory/tests`,
+        getAuthHeaders()
+    );
+};
+
+export const createDoctorLaboratoryOrder = (
+    data
+) => {
+    return axios.post(
+        `${API_URL}/laboratory/orders`,
+        data,
+        getAuthHeaders()
+    );
+};
+
+export const getDoctorLaboratoryOrders = () => {
+    return axios.get(
+        `${API_URL}/laboratory/orders`,
+        getAuthHeaders()
+    );
+};
+
+export const getDoctorLaboratoryOrder = (
+    orderId
+) => {
+    return axios.get(
+        `${API_URL}/laboratory/orders/${orderId}`,
+        getAuthHeaders()
+    );
+};

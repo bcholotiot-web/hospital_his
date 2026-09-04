@@ -68,6 +68,9 @@ public class SecurityConfig {
                         .requestMatchers("/api/doctor/**")
                         .hasRole("MEDICO")
 
+                        .requestMatchers("/api/laboratory/**")
+                        .hasRole("LABORATORIO")
+
                         .anyRequest()
                         .authenticated())
                 .addFilterBefore(

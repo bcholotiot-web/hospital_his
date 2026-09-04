@@ -44,8 +44,8 @@ users
 
 //Usuarios de prueba 
 admin001 -> AdminPrueba123
-recep001 -> RecepPrueba123
-cajero01 -> CajeroPrueba123
+
+
 
 //Pacientes
 Paciente 1
@@ -61,3 +61,18 @@ Contraseña: EnfermeriaPrueba123
 
 Usuario: medped01
 Contraseña: MedicoPrueba123
+
+Usuario: lab01
+Contraseña: LaboratorioPrueba123
+
+
+//Prueba flujo hasta CU-06
+
+cajero01 -> CajeroPrueba123
+recep001 -> RecepPrueba123
+enfer01 -> EnfermeriaPrueba123
+medped02 -> MedicoPrueba123
+lab01 -> LaboratorioPrueba123
+
+//se crea al usuario 
+pacienteP -> PacientePrueba123  ID12

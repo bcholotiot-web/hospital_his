@@ -10,6 +10,9 @@ import MainLayout
 import MedicalConsultationModal
     from "./MedicalConsultationModal";
 
+import LaboratoryOrderModal
+    from "./LaboratoryOrderModal";
+
 import {
     finishPatientCare,
     getDoctorQueue,
@@ -39,6 +42,16 @@ function DoctorDashboard() {
 
     const [successMessage, setSuccessMessage] =
         useState("");
+
+    const [
+        laboratoryAppointment,
+        setLaboratoryAppointment
+    ] = useState(null);
+
+    const [
+        laboratoryOrderResult,
+        setLaboratoryOrderResult
+    ] = useState(null);
 
     const loadQueue = useCallback(
         async (showLoading = true) => {
@@ -100,26 +113,23 @@ function DoctorDashboard() {
         };
     }, [loadQueue]);
 
-    const waitingAppointments =
-        queue.filter(
-            item =>
-                item.appointmentStatus ===
-                "SIGNOS_REGISTRADOS"
-        );
+    const waitingAppointments = queue.filter(
+        item =>
+            item.appointmentStatus ===
+            "SIGNOS_REGISTRADOS"
+    );
 
-    const activeConsultations =
-        queue.filter(
-            item =>
-                item.appointmentStatus ===
-                "CONSULTA_MEDICA"
-        );
+    const activeConsultations = queue.filter(
+        item =>
+            item.appointmentStatus ===
+            "CONSULTA_MEDICA"
+    );
 
-    const evaluatedAppointments =
-        queue.filter(
-            item =>
-                item.appointmentStatus ===
-                "CONSULTA_EVALUADA"
-        );
+    const evaluatedAppointments = queue.filter(
+        item =>
+            item.appointmentStatus ===
+            "CONSULTA_EVALUADA"
+    );
 
     const announcePatient = (
         appointment
@@ -152,150 +162,173 @@ function DoctorDashboard() {
         );
     };
 
-    const handleStartConsultation =
-        async (appointment) => {
-            if (processingId !== null) {
-                return;
-            }
+    const handleStartConsultation = async (appointment) => {
+        if (processingId !== null) {
+            return;
+        }
 
-            try {
-                setProcessingId(
+        try {
+            setProcessingId(
+                appointment.appointmentId
+            );
+
+            setErrorMessage("");
+            setSuccessMessage("");
+
+            const response =
+                await startMedicalConsultation(
                     appointment.appointmentId
                 );
 
-                setErrorMessage("");
-                setSuccessMessage("");
-
-                const response =
-                    await startMedicalConsultation(
-                        appointment.appointmentId
-                    );
-
-                announcePatient(
-                    appointment
-                );
-
-                setSuccessMessage(
-                    response.data.message
-                );
-
-                await loadQueue(false);
-
-                setSelectedAppointmentId(
-                    appointment.appointmentId
-                );
-
-            } catch (error) {
-                setErrorMessage(
-                    getBackendMessage(
-                        error,
-                        "No fue posible iniciar la consulta."
-                    )
-                );
-
-            } finally {
-                setProcessingId(null);
-            }
-        };
-
-    const handleNoShow =
-        async (appointment) => {
-            if (processingId !== null) {
-                return;
-            }
-
-            const accepted =
-                window.confirm(
-                    `¿Desea marcar la cita #${appointment.appointmentId} como No Asistió?`
-                );
-
-            if (!accepted) {
-                return;
-            }
-
-            try {
-                setProcessingId(
-                    appointment.appointmentId
-                );
-
-                setErrorMessage("");
-                setSuccessMessage("");
-
-                await markAppointmentNoShow(
-                    appointment.appointmentId
-                );
-
-                setSuccessMessage(
-                    `Cita #${appointment.appointmentId} marcada como No Asistió.`
-                );
-
-                await loadQueue(false);
-
-            } catch (error) {
-                setErrorMessage(
-                    getBackendMessage(
-                        error,
-                        "No fue posible marcar la inasistencia."
-                    )
-                );
-
-            } finally {
-                setProcessingId(null);
-            }
-        };
-
-    const handleFinishCare =
-        async (appointment) => {
-            if (processingId !== null) {
-                return;
-            }
-
-            const accepted =
-                window.confirm(
-                    `¿Desea finalizar la atención de la cita #${appointment.appointmentId}?`
-                );
-
-            if (!accepted) {
-                return;
-            }
-
-            try {
-                setProcessingId(
-                    appointment.appointmentId
-                );
-
-                setErrorMessage("");
-                setSuccessMessage("");
-
-                await finishPatientCare(
-                    appointment.appointmentId
-                );
-
-                setSuccessMessage(
-                    `Atención finalizada para cita #${appointment.appointmentId}.`
-                );
-
-                await loadQueue(false);
-
-            } catch (error) {
-                setErrorMessage(
-                    getBackendMessage(
-                        error,
-                        "No fue posible finalizar la atención."
-                    )
-                );
-
-            } finally {
-                setProcessingId(null);
-            }
-        };
-
-    const handleConsultationSaved =
-        async (response) => {
-            setSelectedAppointmentId(null);
+            announcePatient(
+                appointment
+            );
 
             setSuccessMessage(
-                response.message
+                response.data.message
+            );
+
+            await loadQueue(false);
+
+            setSelectedAppointmentId(
+                appointment.appointmentId
+            );
+
+        } catch (error) {
+            setErrorMessage(
+                getBackendMessage(
+                    error,
+                    "No fue posible iniciar la consulta."
+                )
+            );
+
+        } finally {
+            setProcessingId(null);
+        }
+    };
+
+    const handleNoShow = async (appointment) => {
+        if (processingId !== null) {
+            return;
+        }
+
+        const accepted =
+            window.confirm(
+                `¿Desea marcar la cita #${appointment.appointmentId} como No Asistió?`
+            );
+
+        if (!accepted) {
+            return;
+        }
+
+        try {
+            setProcessingId(
+                appointment.appointmentId
+            );
+
+            setErrorMessage("");
+            setSuccessMessage("");
+
+            await markAppointmentNoShow(
+                appointment.appointmentId
+            );
+
+            setSuccessMessage(
+                `Cita #${appointment.appointmentId} marcada como No Asistió.`
+            );
+
+            await loadQueue(false);
+
+        } catch (error) {
+            setErrorMessage(
+                getBackendMessage(
+                    error,
+                    "No fue posible marcar la inasistencia."
+                )
+            );
+
+        } finally {
+            setProcessingId(null);
+        }
+    };
+
+    const handleFinishCare = async (appointment) => {
+        if (processingId !== null) {
+            return;
+        }
+
+        const accepted =
+            window.confirm(
+                `¿Desea finalizar la atención de la cita #${appointment.appointmentId}?`
+            );
+
+        if (!accepted) {
+            return;
+        }
+
+        try {
+            setProcessingId(
+                appointment.appointmentId
+            );
+
+            setErrorMessage("");
+            setSuccessMessage("");
+
+            await finishPatientCare(
+                appointment.appointmentId
+            );
+
+            setSuccessMessage(
+                `Atención finalizada para cita #${appointment.appointmentId}.`
+            );
+
+            await loadQueue(false);
+
+        } catch (error) {
+            setErrorMessage(
+                getBackendMessage(
+                    error,
+                    "No fue posible finalizar la atención."
+                )
+            );
+
+        } finally {
+            setProcessingId(null);
+        }
+    };
+
+    const handleConsultationSaved = async (response) => {
+        setSelectedAppointmentId(null);
+
+        setSuccessMessage(
+            response.message
+        );
+
+        setErrorMessage("");
+
+        await loadQueue(false);
+    };
+
+    const handleOpenLaboratoryOrder = (
+        appointment
+    ) => {
+        setErrorMessage("");
+        setSuccessMessage("");
+        setLaboratoryOrderResult(null);
+        setLaboratoryAppointment(
+            appointment
+        );
+    };
+
+    const handleLaboratoryOrderCreated =
+        async (order) => {
+            setLaboratoryAppointment(null);
+            setLaboratoryOrderResult(order);
+
+            setSuccessMessage(
+                `Orden ${order.orderNumber} creada correctamente. Total: Q${Number(
+                    order.totalAmount
+                ).toFixed(2)}. Estado: Pendiente de pago.`
             );
 
             setErrorMessage("");
@@ -406,14 +439,26 @@ function DoctorDashboard() {
                             onStart={() => { }}
                             onOpen={(appointment) =>
                                 setSelectedAppointmentId(
-                                    appointment
-                                        .appointmentId
+                                    appointment.appointmentId
                                 )
                             }
                             onFinish={
                                 handleFinishCare
                             }
                             onNoShow={() => { }}
+                            onLabOrder={
+                                handleOpenLaboratoryOrder
+                            }
+                            onPrescription={(appointment) => {
+                                setErrorMessage(
+                                    `La generación de recetas para la cita #${appointment.appointmentId} se implementará en CU-10.`
+                                );
+                            }}
+                            onFollowUp={(appointment) => {
+                                setErrorMessage(
+                                    `El seguimiento para la cita #${appointment.appointmentId} se implementará en CU-11.`
+                                );
+                            }}
                         />
                     </div>
                 )}
@@ -433,6 +478,22 @@ function DoctorDashboard() {
                         }
                     />
                 )}
+
+                {laboratoryAppointment && (
+                    <LaboratoryOrderModal
+                        appointment={
+                            laboratoryAppointment
+                        }
+                        onClose={() =>
+                            setLaboratoryAppointment(
+                                null
+                            )
+                        }
+                        onCreated={
+                            handleLaboratoryOrderCreated
+                        }
+                    />
+                )}
             </div>
         </MainLayout>
     );
@@ -446,7 +507,10 @@ function DoctorSection({
     onStart,
     onOpen,
     onFinish,
-    onNoShow
+    onNoShow,
+    onLabOrder,
+    onPrescription,
+    onFollowUp
 }) {
     return (
         <section className="doctor-section">
@@ -571,90 +635,128 @@ function DoctorSection({
                                     </div>
 
                                     <div className="doctor-card-actions">
-                                        {appointment
-                                            .canStartConsultation && (
-                                                <button
-                                                    type="button"
-                                                    className={
+                                        {appointment.canStartConsultation && (
+                                            <button
+                                                type="button"
+                                                className={
+                                                    appointment
+                                                        .emergency
+                                                        ? "doctor-primary-action urgent"
+                                                        : "doctor-primary-action"
+                                                }
+                                                disabled={
+                                                    processing
+                                                }
+                                                onClick={() =>
+                                                    onStart(
                                                         appointment
-                                                            .emergency
-                                                            ? "doctor-primary-action urgent"
-                                                            : "doctor-primary-action"
-                                                    }
-                                                    disabled={
-                                                        processing
-                                                    }
-                                                    onClick={() =>
-                                                        onStart(
-                                                            appointment
-                                                        )
-                                                    }
-                                                >
-                                                    {processing
-                                                        ? "Iniciando..."
-                                                        : "Iniciar Consulta"}
-                                                </button>
-                                            )}
+                                                    )
+                                                }
+                                            >
+                                                {processing
+                                                    ? "Iniciando..."
+                                                    : "Iniciar Consulta"}
+                                            </button>
+                                        )}
 
-                                        {appointment
-                                            .canOpenConsultation && (
-                                                <button
-                                                    type="button"
-                                                    className={
-                                                        "doctor-primary-action"
-                                                    }
-                                                    onClick={() =>
-                                                        onOpen(
-                                                            appointment
-                                                        )
-                                                    }
-                                                >
-                                                    Ver / Completar
-                                                    Consulta
-                                                </button>
-                                            )}
+                                        {appointment.canOpenConsultation && (
+                                            <button
+                                                type="button"
+                                                className={
+                                                    "doctor-primary-action"
+                                                }
+                                                onClick={() =>
+                                                    onOpen(
+                                                        appointment
+                                                    )
+                                                }
+                                            >
+                                                Ver / Completar
+                                                Consulta
+                                            </button>
+                                        )}
 
-                                        {appointment
-                                            .canFinishCare && (
-                                                <button
-                                                    type="button"
-                                                    className={
-                                                        "doctor-finish-action"
-                                                    }
-                                                    disabled={
-                                                        processing
-                                                    }
-                                                    onClick={() =>
-                                                        onFinish(
-                                                            appointment
-                                                        )
-                                                    }
-                                                >
-                                                    {processing
-                                                        ? "Finalizando..."
-                                                        : "Finalizar Atención"}
-                                                </button>
-                                            )}
+                                        {appointment.canGenerateLabOrder && (
+                                            <button
+                                                type="button"
+                                                className="doctor-secondary-action"
+                                                onClick={() =>
+                                                    onLabOrder(
+                                                        appointment
+                                                    )
+                                                }
+                                            >
+                                                Generar Orden de Laboratorio
+                                            </button>
+                                        )}
 
-                                        {appointment
-                                            .canMarkNoShow && (
-                                                <button
-                                                    type="button"
-                                                    className={
-                                                        "doctor-secondary-action"
-                                                    }
-                                                    disabled={
-                                                        processing
-                                                    }
-                                                    onClick={() =>
-                                                        onNoShow(
-                                                            appointment
-                                                        )
-                                                    }
-                                                >
-                                                    No Asistió
-                                                </button>
-                                            )}
+                                        {appointment.canGeneratePrescription && (
+                                            <button
+                                                type="button"
+                                                className="doctor-secondary-action"
+                                                onClick={() =>
+                                                    onPrescription(
+                                                        appointment
+                                                    )
+                                                }
+                                            >
+                                                Generar Receta Médica
+                                            </button>
+                                        )}
+
+                                        {appointment.canScheduleFollowUp && (
+                                            <button
+                                                type="button"
+                                                className="doctor-secondary-action"
+                                                onClick={() =>
+                                                    onFollowUp(
+                                                        appointment
+                                                    )
+                                                }
+                                            >
+                                                Agendar Seguimiento
+                                            </button>
+                                        )}
+
+                                        {appointment.canFinishCare && (
+                                            <button
+                                                type="button"
+                                                className={
+                                                    "doctor-finish-action"
+                                                }
+                                                disabled={
+                                                    processing
+                                                }
+                                                onClick={() =>
+                                                    onFinish(
+                                                        appointment
+                                                    )
+                                                }
+                                            >
+                                                {processing
+                                                    ? "Finalizando..."
+                                                    : "Finalizar Atención"}
+                                            </button>
+                                        )}
+
+                                        {appointment.canMarkNoShow && (
+                                            <button
+                                                type="button"
+                                                className={
+                                                    "doctor-secondary-action"
+                                                }
+                                                disabled={
+                                                    processing
+                                                }
+                                                onClick={() =>
+                                                    onNoShow(
+                                                        appointment
+                                                    )
+                                                }
+                                            >
+                                                No Asistió
+                                            </button>
+                                        )}
                                     </div>
                                 </article>
                             );

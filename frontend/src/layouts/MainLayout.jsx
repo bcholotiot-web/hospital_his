@@ -32,6 +32,10 @@ function MainLayout({ children }) {
         role === "Medico" ||
         role === "Médico";
 
+    const isLaboratory =
+        role === "LABORATORIO" ||
+        role === "Laboratorio";
+
     const handleLogout = () => {
         localStorage.removeItem("token");
         localStorage.removeItem("role");
@@ -134,6 +138,15 @@ function MainLayout({ children }) {
                             className="main-sidebar-link"
                         >
                             Consultas Médicas
+                        </Link>
+                    )}
+
+                    {isLaboratory && (
+                        <Link
+                            to="/laboratory"
+                            className="main-sidebar-link"
+                        >
+                            Gestión de Laboratorio
                         </Link>
                     )}
                 </nav>

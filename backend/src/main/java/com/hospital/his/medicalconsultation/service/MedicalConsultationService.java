@@ -5,6 +5,7 @@ import com.hospital.his.appointments.entity.AppointmentPriority;
 import com.hospital.his.appointments.entity.AppointmentStatus;
 import com.hospital.his.appointments.repository.AppointmentRepository;
 import com.hospital.his.audit.service.AuditService;
+import com.hospital.his.laboratory.repository.LaboratoryOrderRepository;
 import com.hospital.his.medicalconsultation.dto.DoctorQueueResponse;
 import com.hospital.his.medicalconsultation.dto.Icd10CodeResponse;
 import com.hospital.his.medicalconsultation.dto.MedicalConsultationResponse;
@@ -59,13 +60,16 @@ public class MedicalConsultationService {
     private final AuditService
             auditService;
 
+    private final LaboratoryOrderRepository
+            laboratoryOrderRepository;
+
     public MedicalConsultationService(
             AppointmentRepository appointmentRepository,
             MedicalConsultationRepository medicalConsultationRepository,
             VitalSignsRepository vitalSignsRepository,
             Icd10CodeRepository icd10CodeRepository,
             UserRepository userRepository,
-            AuditService auditService
+            AuditService auditService, LaboratoryOrderRepository laboratoryOrderRepository
     ) {
         this.appointmentRepository =
                 appointmentRepository;
@@ -84,6 +88,7 @@ public class MedicalConsultationService {
 
         this.auditService =
                 auditService;
+        this.laboratoryOrderRepository = laboratoryOrderRepository;
     }
 
     /*
@@ -968,12 +973,19 @@ public class MedicalConsultationService {
     private DoctorQueueResponse toQueueResponse(
             Appointment appointment
     ) {
+
         MedicalConsultation consultation =
                 medicalConsultationRepository
                         .findByAppointment_Id(
                                 appointment.getId()
                         )
                         .orElse(null);
+
+        boolean hasActiveLaboratoryOrder = consultation != null
+                && laboratoryOrderRepository
+                .existsByMedicalConsultation_IdAndActiveTrue(
+                        consultation.getId()
+                );
 
         return DoctorQueueResponse.builder()
                 .appointmentId(

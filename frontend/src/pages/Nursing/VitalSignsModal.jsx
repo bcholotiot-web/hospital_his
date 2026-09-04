@@ -82,8 +82,7 @@ function VitalSignsModal({
         const temperature =
             Number(formData.temperature);
 
-        const heartRate =
-            Number(formData.heartRate);
+        const heartRate = Number(formData.heartRate);
 
         if (
             hasSystolic &&

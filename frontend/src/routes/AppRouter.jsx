@@ -15,6 +15,7 @@ import Reception from "../pages/Reception/Reception";
 import Cashier from "../pages/Cashier/Cashier";
 import NursingDashboard from "../pages/Nursing/NursingDashboard";
 import DoctorDashboard from "../pages/MedicalConsultation/DoctorDashboard";
+import LaboratoryOrders from "../pages/Laboratory/LaboratoryOrders";
 
 function AppRouter() {
 
@@ -36,6 +37,7 @@ function AppRouter() {
                 <Route path="/cashier" element={<PrivateRoute allowedRoles={["CAJERO", "Cajero"]}><Cashier /></PrivateRoute>} />
                 <Route path="/nursing" element={<PrivateRoute allowedRoles={["ENFERMERIA", "Enfermeria", "Enfermería"]}><NursingDashboard /></PrivateRoute>} />
                 <Route path="/doctor" element={<PrivateRoute allowedRoles={["MEDICO", "Medico", "Médico"]}><DoctorDashboard /></PrivateRoute>} />
+                <Route path="/laboratory" element={<PrivateRoute allowedRoles={["LABORATORIO", "Laboratorio"]}><LaboratoryOrders /></PrivateRoute>} />
             </Routes>
         </BrowserRouter>
     );
