@@ -24,11 +24,20 @@ import com.hospital.his.users.repository.RoleRepository;
 import com.hospital.his.patients.entity.Patient;
 import com.hospital.his.patients.repository.PatientRepository;
 import com.hospital.his.audit.service.AuditService;
+import com.hospital.his.common.exception.LoginAuthenticationException;
+import com.hospital.his.security.jwt.JwtService;
+import com.hospital.his.auth.dto.VerifyDpiRequest;
+import com.hospital.his.auth.dto.VerifyDpiResponse;
+import com.hospital.his.notifications.service.EmailService;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import com.hospital.his.security.jwt.JwtService;
+
+import java.time.LocalDateTime;
+import java.util.Optional;
+
 
 @Service
 public class AuthService {
@@ -40,6 +49,11 @@ public class AuthService {
     private final AuditService auditService;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final EmailService emailService;
+    @Value("${security.login.max-attempts:3}")
+    private int maxLoginAttempts;
+    @Value("${security.login.lock-duration-minutes:15}")
+    private long lockDurationMinutes;
 
     // Constructor
     public AuthService(
@@ -48,7 +62,8 @@ public class AuthService {
             PatientRepository patientRepository,
             AuditService auditService,
             PasswordEncoder passwordEncoder,
-            JwtService jwtService){
+            JwtService jwtService,
+            EmailService emailService){
 
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
@@ -56,15 +71,30 @@ public class AuthService {
         this.auditService = auditService;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
+        this.emailService = emailService;
     }
 
     //Metodo para registro
     public RegisterResponse register(RegisterRequest request) {
+        /*
+         * Validar los datos del registro.
+         */
         validateRegisterRequest(request);
 
-        //Busca paciente
-        Role patientRole = roleRepository.findByName("PACIENTE").orElseThrow(() -> new RuntimeException("Rol PACIENTE no encontrado."));
+        /*
+         * Buscar el rol PACIENTE.
+         */
+        Role patientRole = roleRepository
+                .findByName("PACIENTE")
+                .orElseThrow(
+                        () -> new RuntimeException(
+                                "Rol PACIENTE no encontrado."
+                        )
+                );
 
+        /*
+         * Construir el usuario externo.
+         */
         User user = User.builder()
                 .fullName(request.getFullName())
                 .dpi(request.getDpi())
@@ -72,56 +102,602 @@ public class AuthService {
                 .phone(request.getPhone())
                 .email(request.getEmail())
                 .username(request.getUsername())
-                .password(passwordEncoder.encode(request.getPassword()))
+                .password(
+                        passwordEncoder.encode(
+                                request.getPassword()
+                        )
+                )
                 .active(true)
                 .role(patientRole)
                 .build();
 
-        //Registra usuario
+        /*
+         * Guardar el usuario.
+         */
         user = userRepository.save(user);
-        System.out.println("Usuario registrado: " + user.getId());
+
+        System.out.println(
+                "Usuario registrado correctamente. ID: "
+                        + user.getId()
+        );
+
+        /*
+         * Crear el registro del paciente relacionado
+         * con el usuario.
+         */
         Patient patient = Patient.builder()
                 .user(user)
-                .insuranceNumber(request.getInsuranceNumber())
+                .insuranceNumber(
+                        request.getInsuranceNumber()
+                )
                 .build();
 
-        //Registra paciente
+        /*
+         * Guardar el paciente.
+         */
         patientRepository.save(patient);
-        System.out.println("Paciente registrado correctamente.");
 
-        auditService.log(user.getUsername(), "REGISTER", "AUTH", "Usuario registrado exitosamente. ");
+        System.out.println(
+                "Paciente registrado correctamente."
+        );
+
+        /*
+         * Registrar auditoría del registro.
+         */
+        auditService.log(
+                user.getUsername(),
+                "REGISTER",
+                "AUTH",
+                "Usuario registrado exitosamente."
+        );
+
+        /*
+         * Intentar enviar el correo una sola vez.
+         */
+        boolean welcomeEmailSent = false;
+
+        try {
+            System.out.println(
+                    "Intentando enviar correo de bienvenida a: "
+                            + user.getEmail()
+            );
+
+            emailService.sendWelcomeEmail(
+                    user.getEmail(),
+                    user.getFullName()
+            );
+
+            /*
+             * Solo se asigna true si sendWelcomeEmail()
+             * finalizó sin lanzar una excepción.
+             */
+            welcomeEmailSent = true;
+
+            System.out.println(
+                    "Correo de bienvenida enviado correctamente a: "
+                            + user.getEmail()
+            );
+
+            auditService.log(
+                    user.getUsername(),
+                    "WELCOME_EMAIL_SENT",
+                    "AUTH",
+                    "Correo de bienvenida enviado correctamente."
+            );
+
+        } catch (RuntimeException exception) {
+            /*
+             * El registro ya fue completado.
+             * La falla del correo no elimina al usuario.
+             */
+            welcomeEmailSent = false;
+
+            auditService.log(
+                    user.getUsername(),
+                    "WELCOME_EMAIL_FAILED",
+                    "AUTH",
+                    "El registro fue completado, pero falló "
+                            + "el envío del correo de bienvenida."
+            );
+
+            System.err.println(
+                    "No fue posible enviar el correo de bienvenida a "
+                            + user.getEmail()
+            );
+
+            System.err.println(
+                    "Causa: "
+                            + exception.getMessage()
+            );
+
+            /*
+             * Temporal durante las pruebas.
+             * Permite visualizar la causa completa del error SMTP.
+             */
+            exception.printStackTrace();
+        }
+
+        String responseMessage;
+
+        if (welcomeEmailSent) {
+            responseMessage =
+                    "¡Registro exitoso! Su cuenta ha sido creada "
+                            + "y el correo electrónico de bienvenida "
+                            + "fue enviado correctamente. "
+                            + "Ahora puede iniciar sesión con sus credenciales.";
+        } else {
+            responseMessage =
+                    "¡Registro exitoso! Su cuenta ha sido creada. "
+                            + "No fue posible enviar el correo electrónico "
+                            + "de bienvenida, pero puede iniciar sesión "
+                            + "con sus credenciales.";
+        }
+
         return RegisterResponse.builder()
                 .userId(user.getId())
-                .message("¡Registro exitoso! Su cuenta ha sido creada. Ahora puede iniciar sesión con sus credenciales")
+                .message(responseMessage)
                 .build();
     }
 
     //Metodo para login
-    public LoginResponse login(LoginRequest request){
+    /**
+     * RN-GLOBAL-007: Autenticación de usuarios internos.
+     *
+     * Reglas:
+     * 1. Permite un máximo configurable de intentos fallidos.
+     * 2. Informa cuántos intentos quedan.
+     * 3. Bloquea temporalmente la cuenta al alcanzar el máximo.
+     * 4. No incrementa intentos mientras existe un bloqueo activo.
+     * 5. Restablece el contador cuando el bloqueo vence.
+     * 6. Restablece el contador después de un acceso exitoso.
+     */
+    public LoginResponse login(LoginRequest request) {
+
+        /*Esta validación evita procesar solicitudes sin usuario*/
         validateLoginRequest(request);
-        User user = userRepository.findByUsername(request.getUsername()).orElseThrow(()-> new RuntimeException("Usuario o contraseña incorrectos."));
+        String normalizedUsername = request.getUsername().trim();
 
+        /*
+         * Buscar al usuario por username.
+         *
+         * Para evitar revelar si una cuenta existe, se utiliza
+         * el mismo mensaje de credenciales incorrectas.
+         *
+         * Una cuenta inexistente no puede acumular intentos en
+         * users porque no existe un registro que actualizar.
+         */
+        Optional<User> optionalUser =
+                userRepository.findByUsername(
+                        normalizedUsername
+                );
 
-
-        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            throw new RuntimeException("Usuario o contraseña incorrectos.");
+        if (optionalUser.isEmpty()) {
+            throw LoginAuthenticationException
+                    .invalidCredentials(
+                            Math.max(
+                                    maxLoginAttempts - 1,
+                                    0
+                            )
+                    );
         }
 
-        if(!user.getActive()){
-            throw new RuntimeException("La cuenta se encuentra inactiva");
+        User user = optionalUser.get();
+
+        LocalDateTime now = LocalDateTime.now();
+
+        /*
+         * Paso 1:
+         * Verificar si la cuenta ya se encuentra bloqueada.
+         *
+         * Si lockedUntil contiene una fecha futura, el bloqueo
+         * todavía se encuentra vigente.
+         */
+        if (
+                user.getLockedUntil() != null &&
+                        user.getLockedUntil().isAfter(now)
+        ) {
+            /*
+             * No se incrementa el contador mientras la cuenta
+             * está bloqueada.
+             */
+            throw LoginAuthenticationException
+                    .currentlyBlocked(
+                            user.getLockedUntil()
+                    );
         }
 
-        auditService.log(user.getUsername(), "LOGIN", "AUTH", "Inicio de sesión exitoso");
-        String token = jwtService.generateToken(user.getUsername(), user.getRole().getName());
+        /*
+         * Paso 2:
+         * Si existe una fecha de bloqueo, pero ya venció,
+         * se limpia automáticamente el bloqueo y se reinicia
+         * el contador.
+         */
+        if (
+                user.getLockedUntil() != null &&
+                        !user.getLockedUntil().isAfter(now)
+        ) {
+            user.setLockedUntil(null);
+            user.setFailedLoginAttempts(0);
+
+            userRepository.save(user);
+        }
+
+        /*
+         * Paso 3:
+         * Validar si el usuario está activo.
+         *
+         * Una cuenta inactiva no debe incrementar intentos
+         * porque el problema no corresponde a la contraseña.
+         */
+        if (!Boolean.TRUE.equals(user.getActive())) {
+            throw LoginAuthenticationException
+                    .inactiveAccount();
+        }
+
+        /*
+         * Paso 4:
+         * Validar la contraseña.
+         */
+        boolean validPassword =
+                passwordEncoder.matches(
+                        request.getPassword(),
+                        user.getPassword()
+                );
+
+        if (!validPassword) {
+            registerFailedLogin(user);
+
+            /*
+             * registerFailedLogin siempre lanza una excepción:
+             *
+             * 401 si quedan intentos.
+             * 423 si se alcanzó el máximo.
+             *
+             * Este return solamente satisface el flujo del método.
+             */
+            throw new IllegalStateException(
+                    "No fue posible procesar el intento fallido."
+            );
+        }
+
+        /*
+         * Paso 5:
+         * La contraseña es correcta.
+         *
+         * Se reinician los intentos y cualquier bloqueo que
+         * pudiera permanecer registrado.
+         */
+        resetLoginFailures(user);
+
+        /*
+         * Registrar la auditoría del inicio de sesión exitoso.
+         */
+        auditService.log(
+                user.getUsername(),
+                "LOGIN",
+                "AUTH",
+                "Inicio de sesión exitoso"
+        );
+
+        /*
+         * Generar token JWT utilizando la lógica que ya
+         * existía en la aplicación.
+         */
+        String token = jwtService.generateToken(
+                user.getUsername(),
+                user.getRole().getName()
+        );
+
         return LoginResponse.builder()
-                        .userId(user.getId())
-                                .fullName(user.getFullName())
-                                        .role(user.getRole().getName())
-                                            .token(token)
-                                                .message("Inicio de sesión exitoso.")
-                                                    .build();
+                .userId(user.getId())
+                .fullName(user.getFullName())
+                .role(user.getRole().getName())
+                .token(token)
+                .message("Inicio de sesión exitoso.")
+                .build();
     }
 
+    /**
+     * CU-00: Verificar el registro de una persona antes
+     * de permitir el agendamiento de una cita.
+     *
+     * Resultados:
+     *
+     * LOGIN:
+     * El DPI pertenece a un usuario activo con rol PACIENTE.
+     *
+     * REGISTER:
+     * El DPI no se encuentra registrado.
+     *
+     * INTERNAL_USER:
+     * El DPI pertenece a un usuario interno.
+     *
+     * INACTIVE:
+     * El DPI pertenece a una cuenta inactiva.
+     */
+    public VerifyDpiResponse verifyDpi(VerifyDpiRequest request) {
+        /*
+         * Aplicar RN-GLOBAL-001.
+         */
+        String dpi = validateAndNormalizeDpi(
+                request
+        );
+
+        Optional<User> optionalUser =
+                userRepository.findByDpi(dpi);
+
+        /*
+         * Si el DPI no está registrado, el flujo continúa
+         * hacia el formulario de registro.
+         */
+        if (optionalUser.isEmpty()) {
+            return VerifyDpiResponse.builder()
+                    .registered(false)
+                    .patient(false)
+                    .action("REGISTER")
+                    .message(
+                            "No se encontró un registro asociado " +
+                                    "a este DPI. Será redirigido al " +
+                                    "formulario de registro."
+                    )
+                    .build();
+        }
+
+        User user = optionalUser.get();
+
+        /*
+         * Antes de revisar el rol, se comprueba que la cuenta
+         * se encuentre activa.
+         */
+        if (!Boolean.TRUE.equals(user.getActive())) {
+            return VerifyDpiResponse.builder()
+                    .registered(true)
+                    .patient(false)
+                    .action("INACTIVE")
+                    .message(
+                            "La cuenta asociada a este DPI " +
+                                    "se encuentra inactiva. " +
+                                    "Por favor, contacte a recepción."
+                    )
+                    .build();
+        }
+
+        /*
+         * Validación defensiva por si existe un usuario
+         * mal registrado sin un rol asociado.
+         */
+        if (
+                user.getRole() == null ||
+                        user.getRole().getName() == null
+        ) {
+            return VerifyDpiResponse.builder()
+                    .registered(true)
+                    .patient(false)
+                    .action("INTERNAL_USER")
+                    .message(
+                            "No fue posible determinar el tipo " +
+                                    "de cuenta asociado a este DPI. " +
+                                    "Por favor, contacte a recepción."
+                    )
+                    .build();
+        }
+
+        String roleName =
+                user.getRole()
+                        .getName()
+                        .trim();
+
+        /*
+         * Se utiliza equalsIgnoreCase para admitir temporalmente
+         * valores como PACIENTE, Paciente o paciente.
+         */
+        boolean isPatient =
+                "PACIENTE".equalsIgnoreCase(
+                        roleName
+                );
+
+        if (isPatient) {
+            return VerifyDpiResponse.builder()
+                    .registered(true)
+                    .patient(true)
+                    .action("LOGIN")
+                    .message(
+                            "Registro encontrado. " +
+                                    "Inicie sesión para continuar con " +
+                                    "el agendamiento de su cita."
+                    )
+                    .username(user.getUsername())
+                    .build();
+        }
+
+        /*
+         * El DPI existe, pero pertenece a un usuario interno.
+         */
+        return VerifyDpiResponse.builder()
+                .registered(true)
+                .patient(false)
+                .action("INTERNAL_USER")
+                .message(
+                        "Este DPI pertenece a un usuario " +
+                                "interno del sistema. " +
+                                "Por favor, utilice el acceso " +
+                                "correspondiente o contacte a recepción."
+                )
+                .build();
+    }
+
+    /**
+     * Registra un intento fallido de autenticación.
+     *
+     * Si se alcanza el máximo permitido, establece la fecha
+     * de finalización del bloqueo y devuelve HTTP 423.
+     *
+     * Si todavía quedan intentos, devuelve HTTP 401 junto
+     * con la cantidad de intentos restantes.
+     */
+    private void registerFailedLogin(User user) {
+
+        /*
+         * Compatibilidad con registros existentes que puedan
+         * contener null.
+         */
+        int currentFailedAttempts =
+                user.getFailedLoginAttempts() == null
+                        ? 0
+                        : user.getFailedLoginAttempts();
+
+        int newFailedAttempts =
+                currentFailedAttempts + 1;
+
+        user.setFailedLoginAttempts(
+                newFailedAttempts
+        );
+
+        int remainingAttempts =
+                maxLoginAttempts - newFailedAttempts;
+
+        /*
+         * Si el contador alcanzó o superó el máximo permitido,
+         * se aplica el bloqueo temporal.
+         */
+        if (remainingAttempts <= 0) {
+
+            LocalDateTime lockedUntil =
+                    LocalDateTime.now()
+                            .plusMinutes(
+                                    lockDurationMinutes
+                            );
+
+            /*
+             * El contador queda limitado al máximo configurado.
+             *
+             * De esta manera nunca aparecerán valores como 4, 5
+             * o superiores si el máximo es 3.
+             */
+            user.setFailedLoginAttempts(
+                    maxLoginAttempts
+            );
+
+            user.setLockedUntil(
+                    lockedUntil
+            );
+
+            /*
+             * Es indispensable guardar antes de lanzar
+             * la excepción.
+             */
+            userRepository.save(user);
+
+            /*
+             * Respuesta HTTP 423 Locked.
+             */
+            throw LoginAuthenticationException
+                    .accountBlocked(
+                            lockedUntil
+                    );
+        }
+
+        /*
+         * Todavía quedan intentos disponibles.
+         */
+        user.setLockedUntil(null);
+
+        /*
+         * Guardar el contador antes de lanzar la excepción.
+         */
+        userRepository.save(user);
+
+        /*
+         * Respuesta HTTP 401 Unauthorized.
+         */
+        throw LoginAuthenticationException
+                .invalidCredentials(
+                        remainingAttempts
+                );
+    }
+
+    /**
+     * Reinicia el contador de intentos y elimina cualquier
+     * bloqueo temporal después de una autenticación exitosa.
+     */
+    private void resetLoginFailures(User user) {
+
+        int currentFailedAttempts =
+                user.getFailedLoginAttempts() == null
+                        ? 0
+                        : user.getFailedLoginAttempts();
+
+        boolean hasFailedAttempts =
+                currentFailedAttempts > 0;
+
+        boolean hasLockedUntil =
+                user.getLockedUntil() != null;
+
+        /*
+         * Solo se actualiza la base de datos si realmente
+         * existe información que limpiar.
+         */
+        if (hasFailedAttempts || hasLockedUntil) {
+
+            user.setFailedLoginAttempts(0);
+            user.setLockedUntil(null);
+
+            userRepository.save(user);
+        }
+    }
+
+    /**
+     * RN-GLOBAL-001: Validación de DPI.
+     *
+     * 1. Es obligatorio.
+     * 2. Debe tener exactamente 13 dígitos.
+     * 3. Solamente puede contener números.
+     */
+    private String validateAndNormalizeDpi(VerifyDpiRequest request) {
+        if (request == null) {
+            throw new RuntimeException(
+                    "El campo DPI es obligatorio. " +
+                            "Por favor, ingrese su número de DPI."
+            );
+        }
+
+        String dpi = request.getDpi();
+
+        if (dpi == null || dpi.isBlank()) {
+            throw new RuntimeException(
+                    "El campo DPI es obligatorio. " +
+                            "Por favor, ingrese su número de DPI."
+            );
+        }
+
+        dpi = dpi.trim();
+
+        /*
+         * Primero se comprueba si existen caracteres
+         * diferentes de números.
+         */
+        if (!dpi.matches("\\d+")) {
+            throw new RuntimeException(
+                    "El DPI debe contener únicamente números. " +
+                            "No se permiten letras ni caracteres especiales."
+            );
+        }
+
+        /*
+         * Después se verifica la longitud para poder informar
+         * cuántos dígitos fueron ingresados.
+         */
+        if (dpi.length() != 13) {
+            throw new RuntimeException(
+                    "El DPI debe contener exactamente 13 dígitos. " +
+                            "Usted ingresó " +
+                            dpi.length() +
+                            " dígitos."
+            );
+        }
+
+        return dpi;
+    }
     //Validaciones login
     private void validateLoginRequest(LoginRequest request) {
 

@@ -17,6 +17,8 @@ public interface UserRepository extends JpaRepository<User, Long>{
     boolean existsByEmail(String email);
     boolean existsByDpi(String dpi);
 
+    List<User> findAllByActiveTrueOrderByIdAsc();
+
     List<User> findByRole_NameAndBranch_IdAndSpecialty_IdAndActiveTrue(
             String roleName,
             Long branchId,

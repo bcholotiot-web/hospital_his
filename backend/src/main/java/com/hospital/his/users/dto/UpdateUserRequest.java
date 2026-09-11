@@ -14,6 +14,8 @@ public class UpdateUserRequest {
     private String phone;
     private String email;
     private String username;
+    //para actualizar la contraseña
+    private String newPassword;
     private Long roleId;
     private String insuranceNumber;
     private Long branchId;

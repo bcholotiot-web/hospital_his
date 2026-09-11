@@ -5,31 +5,60 @@ import com.hospital.his.auth.dto.LoginResponse;
 import com.hospital.his.auth.dto.RegisterRequest;
 import com.hospital.his.auth.dto.RegisterResponse;
 import com.hospital.his.auth.service.AuthService;
+import com.hospital.his.auth.dto.VerifyDpiRequest;
+import com.hospital.his.auth.dto.VerifyDpiResponse;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
 @RestController
 @RequestMapping("/api/auth")
-
 public class AuthController {
+
     private final AuthService authService;
 
-    public AuthController(AuthService authService){
+    public AuthController(
+            AuthService authService
+    ) {
         this.authService = authService;
     }
 
     @PostMapping("/register")
     public ResponseEntity<RegisterResponse> register(
-    @RequestBody RegisterRequest request) {
+            @RequestBody RegisterRequest request
+    ) {
+        RegisterResponse response =
+                authService.register(request);
 
-        RegisterResponse response = authService.register(request);
         return ResponseEntity.ok(response);
     }
 
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(
-            @RequestBody LoginRequest request) {
+            @Valid @RequestBody LoginRequest request
+    ) {
+        LoginResponse response =
+                authService.login(request);
 
-        LoginResponse response = authService.login(request);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * CU-**: Verificar DPI antes de agendar **a cita.
+     *
+     * Este endpoint es pú**ico porque se utiliza antes
+     * de**inicio de sesión.
+     */
+    @PostMapping("/verify-dpi")
+    public ResponseEntity<VerifyDpiResponse> verifyDpi(
+            @Valid
+            @RequestBody VerifyDpiRequest request
+    ) {
+        VerifyDpiResponse response =
+                authService.verifyDpi(request);
 
         return ResponseEntity.ok(response);
     }

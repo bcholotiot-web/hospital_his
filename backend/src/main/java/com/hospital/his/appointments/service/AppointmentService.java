@@ -23,6 +23,7 @@ import com.hospital.his.users.repository.UserRepository;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -40,6 +41,7 @@ public class AppointmentService {
     private final SpecialtyRepository specialtyRepository;
     private final BranchSpecialtyRepository branchSpecialtyRepository;
     private final AuditService auditService;
+    private final AppointmentDocumentService appointmentDocumentService;
 
     public AppointmentService(
             AppointmentRepository appointmentRepository,
@@ -47,7 +49,8 @@ public class AppointmentService {
             BranchRepository branchRepository,
             SpecialtyRepository specialtyRepository,
             BranchSpecialtyRepository branchSpecialtyRepository,
-            AuditService auditService
+            AuditService auditService,
+            AppointmentDocumentService appointmentDocumentService
     ) {
         this.appointmentRepository = appointmentRepository;
         this.userRepository = userRepository;
@@ -55,6 +58,7 @@ public class AppointmentService {
         this.specialtyRepository = specialtyRepository;
         this.branchSpecialtyRepository = branchSpecialtyRepository;
         this.auditService = auditService;
+        this.appointmentDocumentService = appointmentDocumentService;
     }
 
     /*
@@ -89,9 +93,7 @@ public class AppointmentService {
      * obtiene las especialidades activas configuradas
      * para la sucursal seleccionada.
      */
-    public List<SpecialtyResponse> getSpecialtiesByBranch(
-            Long branchId
-    ) {
+    public List<SpecialtyResponse> getSpecialtiesByBranch(Long branchId) {
         if (branchId == null) {
             throw new RuntimeException(
                     "Debe seleccionar una sucursal."
@@ -397,8 +399,18 @@ public class AppointmentService {
      * registra la cita usando el username obtenido del JWT.
      */
     @Transactional
-    public AppointmentResponse createAppointment(CreateAppointmentRequest request, String authenticatedUsername) {
+    public AppointmentResponse createAppointment(CreateAppointmentRequest request, MultipartFile document,String authenticatedUsername) {
         validateCreateAppointment(request);
+
+        /*
+         * RN-CU03-04:
+         * Validar el documento antes de registrar la cita.
+         *
+         * Si no se adjuntó documento, continúa normalmente.
+         */
+        appointmentDocumentService.validateDocument(
+                document
+        );
 
         if (authenticatedUsername == null
                 || authenticatedUsername.isBlank()) {
@@ -572,15 +584,19 @@ public class AppointmentService {
                         .build();
 
         try {
-            appointment =
-                    appointmentRepository.saveAndFlush(
-                            appointment
-                    );
+            appointment = appointmentRepository.saveAndFlush(appointment);
         } catch (DataIntegrityViolationException exception) {
             throw new RuntimeException(
                     "El horario seleccionado ya no está disponible. Por favor, elija otro horario."
             );
         }
+        /*
+         * El documento se guarda después de obtener
+         * el ID de la cita.
+         *
+         * Todo está dentro de la misma transacción.
+         */
+        appointmentDocumentService.saveDocument(appointment, document);
 
         auditService.log(
                 patient.getUsername(),

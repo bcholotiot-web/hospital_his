@@ -12,6 +12,9 @@ import {
 
 import "./AppointmentWizard.css";
 
+const MAX_DOCUMENT_SIZE = 2 * 1024 * 1024; // 2 MB
+const INVALID_DOCUMENT_MESSAGE = "El archivo debe ser un archivo PDF válido, y no superar los 2 MB.";
+
 function AppointmentWizard() {
     const [currentStep, setCurrentStep] = useState(1);
 
@@ -31,6 +34,10 @@ function AppointmentWizard() {
     const [loading, setLoading] = useState(false);
     const [reasonError, setReasonError] = useState("");
     const [successMessage, setSuccessMessage] = useState("");
+
+    const [document, setDocument] = useState(null);
+    const [documentError, setDocumentError] = useState("");
+    const [documentInputKey, setDocumentInputKey] = useState(0);
 
     const navigate = useNavigate();
 
@@ -254,11 +261,149 @@ function AppointmentWizard() {
         return true;
     };
 
+    /**
+ * Valida el PDF seleccionado en el frontend.
+ *
+ * React puede validar:
+ * - Nombre y extensión.
+ * - MIME informado por el navegador.
+ * - Archivo no vacío.
+ * - Tamaño máximo.
+ *
+ * El backend continuará validando que sea un PDF
+ * real y que no esté encriptado.
+ */
+    const validateDocument = (selectedFile) => {
+        /*
+         * El documento es opcional.
+         */
+        if (!selectedFile) {
+            setDocumentError("");
+            return true;
+        }
+
+        const validExtension =
+            selectedFile.name
+                .toLowerCase()
+                .endsWith(".pdf");
+
+        const validMimeType =
+            selectedFile.type ===
+            "application/pdf";
+
+        const validSize =
+            selectedFile.size > 0 &&
+            selectedFile.size <=
+            MAX_DOCUMENT_SIZE;
+
+        if (
+            !validExtension ||
+            !validMimeType ||
+            !validSize
+        ) {
+            setDocumentError(
+                INVALID_DOCUMENT_MESSAGE
+            );
+
+            return false;
+        }
+
+        setDocumentError("");
+        return true;
+    };
+
+    /**
+     * Procesa la selección del archivo.
+     */
+    const handleDocumentChange = (event) => {
+        const selectedFile =
+            event.target.files?.[0] || null;
+
+        setDocumentError("");
+        setErrorMessage("");
+
+        /*
+         * Si la persona cancela el selector,
+         * el documento queda vacío.
+         */
+        if (!selectedFile) {
+            setDocument(null);
+            return;
+        }
+
+        if (!validateDocument(selectedFile)) {
+            setDocument(null);
+
+            /*
+             * Limpiar visualmente el input.
+             */
+            setDocumentInputKey(
+                currentKey => currentKey + 1
+            );
+
+            return;
+        }
+
+        setDocument(selectedFile);
+    };
+
+    /**
+     * Elimina el documento seleccionado.
+     */
+    const removeDocument = () => {
+        if (loading) {
+            return;
+        }
+
+        setDocument(null);
+        setDocumentError("");
+        setErrorMessage("");
+
+        setDocumentInputKey(
+            currentKey => currentKey + 1
+        );
+    };
+
+    /**
+     * Convierte bytes a una representación legible.
+     */
+    const formatFileSize = (size) => {
+        if (
+            size === null ||
+            size === undefined
+        ) {
+            return "";
+        }
+
+        if (size < 1024) {
+            return `${size} bytes`;
+        }
+
+        const sizeInKb =
+            size / 1024;
+
+        if (sizeInKb < 1024) {
+            return `${sizeInKb.toFixed(1)} KB`;
+        }
+
+        const sizeInMb =
+            sizeInKb / 1024;
+
+        return `${sizeInMb.toFixed(2)} MB`;
+    };
+
     const handleConfirmAppointment = async () => {
         setErrorMessage("");
         setSuccessMessage("");
 
         if (!validateReason()) {
+            return;
+        }
+
+        /*
+         * Volver a validar el documento al confirmar.
+         */
+        if (!validateDocument(document)) {
             return;
         }
 
@@ -290,35 +435,64 @@ function AppointmentWizard() {
             return;
         }
 
+        /*
+         * Aunque el backend identifica al paciente mediante
+         * el JWT, esta comprobación permite detectar una
+         * sesión incompleta en el navegador.
+         */
         const patientUserId =
             localStorage.getItem("userId");
 
         if (!patientUserId) {
             setErrorMessage(
-                "No se pudo identificar al paciente autenticado. Inicie sesión nuevamente."
+                "No se pudo identificar al paciente autenticado. " +
+                "Inicie sesión nuevamente."
             );
             return;
         }
 
+        const appointmentData = {
+            doctorUserId:
+                Number(doctorId),
+
+            branchId:
+                Number(branchId),
+
+            specialtyId:
+                Number(specialtyId),
+
+            appointmentDateTime:
+                selectedDateTime,
+
+            reason:
+                reason.trim()
+        };
+
         try {
             setLoading(true);
 
-            const response = await createAppointment({
-                patientUserId: Number(patientUserId),
-                doctorUserId: Number(doctorId),
-                branchId: Number(branchId),
-                specialtyId: Number(specialtyId),
-                appointmentDateTime: selectedDateTime,
-                reason: reason.trim()
-            });
+            const response =
+                await createAppointment(
+                    appointmentData,
+                    document
+                );
 
             sessionStorage.setItem(
                 "pendingAppointment",
-                JSON.stringify(response.data)
+                JSON.stringify(
+                    response.data
+                )
             );
 
             setSuccessMessage(
-                "Su cita ha sido registrada exitosamente. Será redirigido al proceso de pago para confirmar la reserva."
+                "Su cita ha sido registrada exitosamente. " +
+                "Será redirigido al proceso de pago " +
+                "para confirmar la reserva."
+            );
+
+            console.log(
+                "Cita registrada:",
+                response.data
             );
 
             setTimeout(() => {
@@ -330,30 +504,57 @@ function AppointmentWizard() {
                 );
             }, 1500);
 
-            console.log(
-                "Cita registrada:",
-                response.data
+        } catch (error) {
+            console.error(
+                "Error al registrar la cita:",
+                error
             );
+
+            const backendMessage =
+                error.response?.data?.message;
+
+            const validationErrors =
+                error.response?.data
+                    ?.validationErrors;
+
+            let finalMessage =
+                backendMessage ||
+                "No fue posible registrar la cita.";
 
             /*
-             * El CU-04 todavía no está implementado.
-             * De momento, dejamos preparada la redirección.
+             * Si el backend devolvió errores por campo,
+             * utilizar el primer mensaje.
              */
-            setTimeout(() => {
-                // navigate(`/payments/${response.data.id}`);
-                console.log(
-                    "Pendiente redirección al CU-04. Cita:",
-                    response.data.id
+            if (validationErrors) {
+                const messages =
+                    Object.values(
+                        validationErrors
+                    );
+
+                if (messages.length > 0) {
+                    finalMessage =
+                        messages[0];
+                }
+            }
+
+            /*
+             * Si el backend rechazó específicamente el PDF,
+             * mostrar el error junto al selector de archivo.
+             */
+            if (
+                finalMessage ===
+                INVALID_DOCUMENT_MESSAGE
+            ) {
+                setDocumentError(
+                    INVALID_DOCUMENT_MESSAGE
                 );
-            }, 1500);
 
-        } catch (error) {
-            console.error(error);
-
-            setErrorMessage(
-                error.response?.data?.message ||
-                "No fue posible registrar la cita."
-            );
+                setErrorMessage("");
+            } else {
+                setErrorMessage(
+                    finalMessage
+                );
+            }
 
         } finally {
             setLoading(false);
@@ -852,6 +1053,89 @@ function AppointmentWizard() {
                             )}
                         </div>
 
+                        {/* Documento PDF opcional */}
+                        <div className="document-section">
+                            <div className="document-section-header">
+                                <label htmlFor="appointment-document">
+                                    Documento adjunto
+                                </label>
+
+                                <span className="optional-badge">
+                                    Opcional
+                                </span>
+                            </div>
+
+                            <p className="document-description">
+                                Puede adjuntar un documento relacionado con
+                                la consulta. El archivo debe ser PDF válido,
+                                no encriptado y pesar como máximo 2 MB.
+                            </p>
+
+                            {!document && (
+                                <input
+                                    key={documentInputKey}
+                                    id="appointment-document"
+                                    type="file"
+                                    accept=".pdf,application/pdf"
+                                    onChange={handleDocumentChange}
+                                    disabled={loading}
+                                    className={
+                                        documentError
+                                            ? "document-input document-input-error"
+                                            : "document-input"
+                                    }
+                                />
+                            )}
+
+                            {document && (
+                                <div className="selected-document">
+                                    <div className="selected-document-info">
+                                        <span className="document-icon">
+                                            PDF
+                                        </span>
+
+                                        <div>
+                                            <strong>
+                                                {document.name}
+                                            </strong>
+
+                                            <small>
+                                                {formatFileSize(
+                                                    document.size
+                                                )}
+                                            </small>
+                                        </div>
+                                    </div>
+
+                                    <button
+                                        type="button"
+                                        className="remove-document-button"
+                                        onClick={removeDocument}
+                                        disabled={loading}
+                                    >
+                                        Quitar archivo
+                                    </button>
+                                </div>
+                            )}
+
+                            <small className="document-help">
+                                Formato permitido: PDF. Tamaño máximo:
+                                2 MB. El documento no debe estar
+                                encriptado.
+                            </small>
+
+                            {documentError && (
+                                <div
+                                    className="document-error-message"
+                                    role="alert"
+                                    aria-live="assertive"
+                                >
+                                    {documentError}
+                                </div>
+                            )}
+                        </div>
+
+
                         <div className="wizard-actions">
                             <button
                                 type="button"
@@ -862,6 +1146,7 @@ function AppointmentWizard() {
                                     setSuccessMessage("");
                                     setErrorMessage("");
                                     setReasonError("");
+                                    setDocumentError("");
                                 }}
                             >
                                 Volver

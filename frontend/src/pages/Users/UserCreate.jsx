@@ -55,7 +55,7 @@ function UserCreate({ onCreated }) {
     );
 
     const isDoctorRole =
-        selectedRole?.name === "Médico";
+        selectedRole?.name === "MEDICO";
 
 
     const validateForm = () => {

@@ -1,11 +1,12 @@
-import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import { register } from "../../api/authApi";
 import "./Register.css";
 import "../../styles/forms.css";
 
 function Register() {
     const navigate = useNavigate();
+    const location = useLocation();
 
     const [fullName, setFullName] = useState("");
     const [dpi, setDpi] = useState("");
@@ -19,6 +20,10 @@ function Register() {
     const [errors, setErrors] = useState({});
     const [generalMessage, setGeneralMessage] = useState("");
 
+    const [successMessage, setSuccessMessage] = useState("");
+    const [errorMessage, setErrorMessage] = useState("");
+    const [registering, setRegistering] = useState(false);
+    const [redirecting, setRedirecting] = useState(false);
     const validateForm = () => {
         const newErrors = {};
 
@@ -289,8 +294,13 @@ function Register() {
                     <button
                         type="submit"
                         className="btn-register"
+                        disabled={registering || redirecting}
                     >
-                        Registrarse
+                        {redirecting
+                            ? "Redirigiendo..."
+                            : registering
+                                ? "Registrando..."
+                                : "Registrarse"}
                     </button>
                 </form>
 

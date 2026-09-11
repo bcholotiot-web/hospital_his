@@ -83,6 +83,4 @@ public class Appointment {
 
     @Column(nullable = false)
     private Boolean active;
-
-
 }

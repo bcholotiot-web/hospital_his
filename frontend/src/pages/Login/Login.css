@@ -1,10 +1,13 @@
 .login-page {
     min-height: 100vh;
-    background: linear-gradient(135deg, #2563eb, #1e40af);
+    background: linear-gradient(135deg,
+            #2563eb,
+            #1e40af);
     display: flex;
     align-items: center;
     justify-content: center;
     padding: 20px;
+    box-sizing: border-box;
 }
 
 .login-card {
@@ -14,27 +17,197 @@
     border-radius: 14px;
     padding: 32px;
     box-shadow: 0 14px 35px rgba(0, 0, 0, 0.2);
+    box-sizing: border-box;
 }
 
 .login-card h1 {
     text-align: center;
     color: #2563eb;
+    margin-top: 0;
     margin-bottom: 8px;
 }
 
 .login-card h2 {
     text-align: center;
     color: #111827;
+    margin-top: 0;
     margin-bottom: 24px;
 }
 
+/*
+ * Separación entre los campos del formulario.
+ */
+.login-card .form-group {
+    margin-bottom: 16px;
+}
+
+.login-card .form-group label {
+    display: block;
+    margin-bottom: 6px;
+    color: #374151;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.login-card .form-group input {
+    width: 100%;
+    padding: 11px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 7px;
+    background-color: #ffffff;
+    color: #111827;
+    font-size: 15px;
+    box-sizing: border-box;
+    transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.login-card .form-group input::placeholder {
+    color: #9ca3af;
+}
+
+.login-card .form-group input:focus {
+    border-color: #2563eb;
+    outline: none;
+    box-shadow:
+        0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.login-card .form-group input:disabled {
+    cursor: not-allowed;
+    background-color: #f3f4f6;
+    opacity: 0.75;
+}
+
+/*
+ * Campo que contiene un error.
+ */
+.login-card .form-group input.login-input-error {
+    border-color: #dc2626;
+}
+
+.login-card .form-group input.login-input-error:focus {
+    border-color: #dc2626;
+    box-shadow:
+        0 0 0 3px rgba(220, 38, 38, 0.15);
+}
+
+/*
+ * Contenedor general de mensajes.
+ */
+.login-message {
+    width: 100%;
+    margin-top: 16px;
+    padding: 13px 14px;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    box-sizing: border-box;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+/*
+ * Credenciales incorrectas, validaciones o errores comunes.
+ */
+.login-message-error {
+    color: #842029;
+    background-color: #f8d7da;
+    border-color: #f5c2c7;
+}
+
+/*
+ * Cuenta bloqueada temporalmente.
+ */
+.login-message-blocked {
+    color: #664d03;
+    background-color: #fff3cd;
+    border-color: #ffecb5;
+}
+
+/*
+ * Encabezado del mensaje.
+ */
+.login-message-title {
+    margin-bottom: 3px;
+    font-weight: 700;
+}
+
+/*
+ * Mensaje principal enviado por el backend.
+ */
+.login-message-description {
+    overflow-wrap: anywhere;
+}
+
+/*
+ * Texto de intentos restantes.
+ */
+.attempts-message {
+    margin-top: 6px;
+}
+
+/*
+ * Fecha y hora de desbloqueo.
+ */
+.blocked-until {
+    margin-top: 6px;
+}
+
+/*
+ * Botón principal.
+ */
+.login-submit-button {
+    width: 100%;
+    margin-top: 18px;
+}
+
+.login-submit-button:disabled {
+    cursor: not-allowed;
+    opacity: 0.65;
+}
+
+/*
+ * Enlaces inferiores.
+ */
 .login-actions {
     margin-top: 18px;
     display: flex;
     justify-content: space-between;
+    gap: 16px;
 }
 
 .login-actions a {
     color: #2563eb;
     font-size: 14px;
+    text-decoration: none;
+}
+
+.login-actions a:hover {
+    text-decoration: underline;
+}
+
+/*
+ * Adaptación para pantallas pequeñas.
+ */
+@media (max-width: 480px) {
+    .login-page {
+        padding: 14px;
+    }
+
+    .login-card {
+        padding: 24px 20px;
+    }
+
+    .login-actions {
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+    }
+}
+
+.login-message-info {
+    color: #084298;
+    background-color: #cfe2ff;
+    border-color: #b6d4fe;
 }

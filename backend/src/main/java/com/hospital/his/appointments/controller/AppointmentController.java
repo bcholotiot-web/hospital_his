@@ -11,6 +11,8 @@ import com.hospital.his.catalogs.dto.SpecialtyResponse;
 import com.hospital.his.catalogs.dto.BranchResponse;
 
 import org.springframework.security.core.Authentication;
+import org.springframework.http.MediaType;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -25,14 +27,18 @@ public class AppointmentController {
         this.appointmentService = appointmentService;
     }
 
-    @PostMapping
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<AppointmentResponse> createAppointment(
-            @RequestBody CreateAppointmentRequest request,
+            @RequestPart("appointment")
+            CreateAppointmentRequest request,
+            @RequestPart(value = "document", required = false)
+            MultipartFile document,
             Authentication authentication
     ) {
         return ResponseEntity.ok(
                 appointmentService.createAppointment(
                         request,
+                        document,
                         authentication.getName()
                 )
         );

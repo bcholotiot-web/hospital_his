@@ -62,11 +62,66 @@ export const getAvailability = (doctorId, date) => {
 };
 
 //Registra la cita
-export const createAppointment = (data) => {
+/**
+ * Registra una cita con un documento PDF opcional.
+ *
+ * La petición contiene:
+ * - appointment: información JSON de la cita.
+ * - document: archivo PDF opcional.
+ */
+export const createAppointment = (
+    appointmentData,
+    document
+) => {
+    const formData = new FormData();
+
+    /*
+     * Spring Boot recibirá esta parte mediante:
+     *
+     * @RequestPart("appointment")
+     * CreateAppointmentRequest request
+     */
+    const appointmentBlob = new Blob(
+        [JSON.stringify(appointmentData)],
+        {
+            type: "application/json"
+        }
+    );
+
+    formData.append(
+        "appointment",
+        appointmentBlob
+    );
+
+    /*
+     * El documento es opcional.
+     * Si no se selecciona, no se agrega esta parte.
+     */
+    if (document) {
+        formData.append(
+            "document",
+            document
+        );
+    }
+
+    const token =
+        localStorage.getItem("token");
+
+    /*
+     * No se establece manualmente Content-Type.
+     *
+     * El navegador agregará:
+     * multipart/form-data; boundary=...
+     */
     return axios.post(
         API_URL,
-        data,
-        getAuthHeaders()
+        formData,
+        {
+            headers: {
+                Authorization:
+                    `Bearer ${token}`
+            }
+        }
     );
 };
 
