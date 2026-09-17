@@ -460,9 +460,7 @@ public class MedicalConsultationService {
                     AppointmentStatus.CONSULTA_EVALUADA
             );
 
-            message =
-                    "La consulta ha sido finalizada exitosamente. "
-                            + "El paciente puede proceder a las siguientes indicaciones médicas.";
+            message = "La evaluación médica fue finalizada exitosamente. Ahora puede generar las órdenes o indicaciones médicas necesarias antes de finalizar la atención.";
 
         } else {
             consultation.setStatus(
@@ -540,10 +538,7 @@ public class MedicalConsultationService {
      * órdenes o indicaciones necesarias.
      */
     @Transactional
-    public DoctorQueueResponse finishCare(
-            Long appointmentId,
-            String doctorUsername
-    ) {
+    public DoctorQueueResponse finishCare(Long appointmentId, String doctorUsername) {
         User doctor =
                 validateAuthenticatedDoctor(
                         doctorUsername
@@ -654,10 +649,7 @@ public class MedicalConsultationService {
      * signos registrados, pero no respondió al llamado.
      */
     @Transactional
-    public DoctorQueueResponse markNoShow(
-            Long appointmentId,
-            String doctorUsername
-    ) {
+    public DoctorQueueResponse markNoShow(Long appointmentId, String doctorUsername) {
         User doctor =
                 validateAuthenticatedDoctor(
                         doctorUsername
@@ -726,9 +718,7 @@ public class MedicalConsultationService {
      * Autocompletado del catálogo CIE-10.
      */
     @Transactional(readOnly = true)
-    public List<Icd10CodeResponse> searchIcd10(
-            String query
-    ) {
+    public List<Icd10CodeResponse> searchIcd10(String query) {
         if (query == null
                 || query.isBlank()) {
 
@@ -766,9 +756,7 @@ public class MedicalConsultationService {
                 .toList();
     }
 
-    private User validateAuthenticatedDoctor(
-            String doctorUsername
-    ) {
+    private User validateAuthenticatedDoctor(String doctorUsername) {
         if (doctorUsername == null
                 || doctorUsername.isBlank()) {
 
@@ -812,9 +800,7 @@ public class MedicalConsultationService {
         return doctor;
     }
 
-    private boolean isDoctorRole(
-            String roleName
-    ) {
+    private boolean isDoctorRole(String roleName) {
         if (roleName == null) {
             return false;
         }
@@ -832,10 +818,7 @@ public class MedicalConsultationService {
         );
     }
 
-    private Appointment findDoctorAppointment(
-            Long appointmentId,
-            String doctorUsername
-    ) {
+    private Appointment findDoctorAppointment(Long appointmentId, String doctorUsername) {
         if (appointmentId == null) {
             throw new RuntimeException(
                     "Debe indicar el número de cita."
@@ -854,9 +837,7 @@ public class MedicalConsultationService {
                 );
     }
 
-    private void validateSaveRequest(
-            SaveMedicalConsultationRequest request
-    ) {
+    private void validateSaveRequest(SaveMedicalConsultationRequest request) {
         if (request == null) {
             throw new RuntimeException(
                     "Los datos de la consulta son obligatorios."
@@ -872,10 +853,7 @@ public class MedicalConsultationService {
         }
     }
 
-    private MedicalConsultationStatus
-    parseConsultationStatus(
-            String status
-    ) {
+    private MedicalConsultationStatus parseConsultationStatus(String status) {
         try {
             return MedicalConsultationStatus
                     .valueOf(
@@ -893,11 +871,7 @@ public class MedicalConsultationService {
         }
     }
 
-    private String normalizeRequiredText(
-            String value,
-            String requiredMessage,
-            int maximumLength
-    ) {
+    private String normalizeRequiredText(String value, String requiredMessage, int maximumLength) {
         if (value == null
                 || value.isBlank()) {
 
@@ -920,11 +894,7 @@ public class MedicalConsultationService {
         return cleanValue;
     }
 
-    private String normalizeOptionalText(
-            String value,
-            int maximumLength,
-            String lengthMessage
-    ) {
+    private String normalizeOptionalText(String value, int maximumLength, String lengthMessage) {
         if (value == null
                 || value.isBlank()) {
 
@@ -943,9 +913,7 @@ public class MedicalConsultationService {
         return cleanValue;
     }
 
-    private Icd10Code validateAndFindIcd10(
-            String icd10Code
-    ) {
+    private Icd10Code validateAndFindIcd10(String icd10Code) {
         if (icd10Code == null
                 || icd10Code.isBlank()) {
 
@@ -970,9 +938,7 @@ public class MedicalConsultationService {
                 );
     }
 
-    private DoctorQueueResponse toQueueResponse(
-            Appointment appointment
-    ) {
+    private DoctorQueueResponse toQueueResponse(Appointment appointment) {
 
         MedicalConsultation consultation =
                 medicalConsultationRepository
@@ -1063,6 +1029,22 @@ public class MedicalConsultationService {
                         appointment.getStatus()
                                 == AppointmentStatus.CONSULTA_EVALUADA
                 )
+                /*
+                 * El botón para generar una orden se habilita cuando:
+                 *
+                 * 1. Existe una consulta clínica.
+                 * 2. La consulta está FINALIZADA.
+                 * 3. La cita está CONSULTA_EVALUADA.
+                 * 4. Todavía no existe una orden activa.
+                 */
+                .canCreateLaboratoryOrder(
+                        consultation != null
+                                && consultation.getStatus()
+                                == MedicalConsultationStatus.FINALIZADA
+                                && appointment.getStatus()
+                                == AppointmentStatus.CONSULTA_EVALUADA
+                                && !hasActiveLaboratoryOrder
+                )
                 .canMarkNoShow(
                         appointment.getStatus()
                                 == AppointmentStatus.SIGNOS_REGISTRADOS
@@ -1070,11 +1052,7 @@ public class MedicalConsultationService {
                 .build();
     }
 
-    private StartConsultationResponse toStartResponse(
-            MedicalConsultation consultation,
-            Appointment appointment,
-            String message
-    ) {
+    private StartConsultationResponse toStartResponse(MedicalConsultation consultation, Appointment appointment, String message) {
         return StartConsultationResponse.builder()
                 .appointmentId(
                         appointment.getId()
@@ -1106,13 +1084,27 @@ public class MedicalConsultationService {
                 .build();
     }
 
-    private MedicalConsultationResponse
-    toConsultationResponse(
-            MedicalConsultation consultation,
-            Appointment appointment,
-            VitalSigns vitalSigns,
-            String message
-    ) {
+    private MedicalConsultationResponse toConsultationResponse(MedicalConsultation consultation, Appointment appointment, VitalSigns vitalSigns, String message) {
+        /*
+         * Consultar si la consulta ya tiene una orden activa.
+         */
+        boolean hasActiveLaboratoryOrder =
+                laboratoryOrderRepository
+                        .existsByMedicalConsultation_IdAndActiveTrue(
+                                consultation.getId()
+                        );
+
+        /*
+         * Solo puede generarse una orden después de finalizar
+         * la consulta y antes de cerrar completamente la atención.
+         */
+        boolean canCreateLaboratoryOrder =
+                consultation.getStatus()
+                        == MedicalConsultationStatus.FINALIZADA
+                        && appointment.getStatus()
+                        == AppointmentStatus.CONSULTA_EVALUADA
+                        && !hasActiveLaboratoryOrder;
+
         return MedicalConsultationResponse.builder()
                 .consultationId(
                         consultation.getId()
@@ -1214,6 +1206,12 @@ public class MedicalConsultationService {
                                 .toString()
                                 : null
                 )
+                .canCreateLaboratoryOrder(
+                        canCreateLaboratoryOrder
+                )
+                .hasActiveLaboratoryOrder(
+                        hasActiveLaboratoryOrder
+                )
                 .vitalSigns(
                         toVitalSignsResponse(
                                 vitalSigns
@@ -1223,9 +1221,7 @@ public class MedicalConsultationService {
                 .build();
     }
 
-    private VitalSignsResponse toVitalSignsResponse(
-            VitalSigns vitalSigns
-    ) {
+    private VitalSignsResponse toVitalSignsResponse(VitalSigns vitalSigns) {
         List<String> alerts =
                 parseClinicalAlerts(
                         vitalSigns
@@ -1299,9 +1295,7 @@ public class MedicalConsultationService {
                 .build();
     }
 
-    private List<String> parseClinicalAlerts(
-            String clinicalAlerts
-    ) {
+    private List<String> parseClinicalAlerts(String clinicalAlerts) {
         if (clinicalAlerts == null
                 || clinicalAlerts.isBlank()) {
 

@@ -9,6 +9,8 @@ import {
     searchIcd10Codes
 } from "../../api/medicalConsultationApi";
 
+import LaboratoryOrderModal from "./LaboratoryOrderModal";
+
 import "./MedicalConsultationModal.css";
 
 function MedicalConsultationModal({
@@ -54,6 +56,35 @@ function MedicalConsultationModal({
 
     const [generalError, setGeneralError] =
         useState("");
+
+    /*
+ * Controla la apertura del formulario
+ * para generar una orden de laboratorio.
+ */
+    const [
+        showLaboratoryOrderModal,
+        setShowLaboratoryOrderModal
+    ] = useState(false);
+
+    /*
+     * Conserva la orden que acaba de crear el médico.
+     *
+     * Permite mostrar número, total, estado y mensaje
+     * antes de cerrar la atención.
+     */
+    const [
+        createdLaboratoryOrder,
+        setCreatedLaboratoryOrder
+    ] = useState(null);
+
+    /*
+     * Mensaje informativo mostrado después de guardar
+     * o finalizar la consulta.
+     */
+    const [
+        consultationMessage,
+        setConsultationMessage
+    ] = useState("");
 
     useEffect(() => {
         loadConsultation();
@@ -302,9 +333,19 @@ function MedicalConsultationModal({
         ).length === 0;
     };
 
-    const handleSubmit = async (
-        event
-    ) => {
+    /**
+ * Guarda la consulta médica.
+ *
+ * Si la evaluación queda FINALIZADA, conserva abierto
+ * el modal para permitir:
+ *
+ * 1. Generar una orden de laboratorio.
+ * 2. Cerrar el formulario sin generar una orden.
+ *
+ * El backend decide si canCreateLaboratoryOrder
+ * debe ser verdadero.
+ */
+    const handleSubmit = async (event) => {
         event.preventDefault();
 
         if (processing) {
@@ -312,6 +353,7 @@ function MedicalConsultationModal({
         }
 
         setGeneralError("");
+        setConsultationMessage("");
 
         if (!validateForm()) {
             return;
@@ -329,8 +371,7 @@ function MedicalConsultationModal({
                 formData.icd10Code || null,
 
             icd10Description:
-                formData.icd10Description ||
-                null,
+                formData.icd10Description || null,
 
             diagnosis:
                 formData.diagnosis
@@ -357,7 +398,55 @@ function MedicalConsultationModal({
                     request
                 );
 
-            onSaved(response.data);
+            const savedConsultation =
+                response.data;
+
+            /*
+             * Actualiza la información local con la respuesta
+             * definitiva enviada por Spring Boot.
+             */
+            setConsultation(
+                savedConsultation
+            );
+
+            /*
+             * Sincroniza el estado del formulario.
+             */
+            setFormData(previous => ({
+                ...previous,
+                status:
+                    savedConsultation
+                        .consultationStatus ||
+                    previous.status
+            }));
+
+            setConsultationMessage(
+                savedConsultation.message ||
+                (
+                    savedConsultation
+                        .consultationStatus ===
+                        "FINALIZADA"
+                        ? "La evaluación médica fue finalizada. Ahora puede generar las órdenes o indicaciones necesarias."
+                        : "La consulta médica fue guardada correctamente."
+                )
+            );
+
+            /*
+             * Notifica al componente padre para actualizar
+             * la cola, pero el componente padre no debe cerrar
+             * automáticamente este modal.
+             */
+            if (onSaved) {
+                onSaved(
+                    savedConsultation,
+                    {
+                        keepOpen:
+                            savedConsultation
+                                .consultationStatus ===
+                            "FINALIZADA"
+                    }
+                );
+            }
 
         } catch (error) {
             console.error(
@@ -371,11 +460,11 @@ function MedicalConsultationModal({
                     "No fue posible guardar la consulta médica."
                 )
             );
-
         } finally {
             setProcessing(false);
         }
     };
+
 
     if (loading) {
         return (
@@ -389,399 +478,654 @@ function MedicalConsultationModal({
         );
     }
 
+    /**
+ * Abre el formulario de generación de orden.
+ *
+ * El frontend revisa la bandera recibida, pero
+ * Spring Boot volverá a validar todas las reglas.
+ */
+    const handleOpenLaboratoryOrder = () => {
+        if (
+            !consultation
+                ?.canCreateLaboratoryOrder
+        ) {
+            setGeneralError(
+                "La consulta no se encuentra habilitada " +
+                "para generar una orden de laboratorio."
+            );
+
+            return;
+        }
+
+        setGeneralError("");
+        setConsultationMessage("");
+        setShowLaboratoryOrderModal(true);
+    };
+
+    /**
+ * Procesa la respuesta de la orden creada.
+ *
+ * Después de crearla:
+ *
+ * 1. Cierra el modal de laboratorio.
+ * 2. Guarda la confirmación.
+ * 3. Deshabilita una segunda orden.
+ * 4. Notifica al componente padre.
+ */
+    const handleLaboratoryOrderCreated = (
+        order
+    ) => {
+        setCreatedLaboratoryOrder(order);
+        setShowLaboratoryOrderModal(false);
+
+        /*
+         * Actualiza las banderas localmente.
+         *
+         * El backend ya impide crear otra orden, pero
+         * esto también actualiza inmediatamente la interfaz.
+         */
+        setConsultation(previous => ({
+            ...previous,
+            canCreateLaboratoryOrder: false,
+            hasActiveLaboratoryOrder: true
+        }));
+
+        setConsultationMessage(
+            order.message ||
+            "Orden de laboratorio creada correctamente."
+        );
+
+        /*
+         * Actualiza la cola o información del padre.
+         */
+        if (onSaved) {
+            onSaved(
+                {
+                    ...consultation,
+                    canCreateLaboratoryOrder: false,
+                    hasActiveLaboratoryOrder: true,
+                    laboratoryOrder: order
+                },
+                {
+                    keepOpen: true,
+                    laboratoryOrderCreated: true
+                }
+            );
+        }
+    };
+
+    /*
+ * Adapta la respuesta de la consulta al objeto
+ * requerido por LaboratoryOrderModal.
+ */
+    const laboratoryAppointment = {
+        appointmentId:
+            Number(appointmentId),
+
+        patientName:
+            consultation?.patientName ||
+            "No disponible",
+
+        specialty:
+            consultation?.specialty ||
+            "No disponible",
+
+        branch:
+            consultation?.branch ||
+            "No disponible",
+
+        appointmentStatus:
+            consultation?.appointmentStatus ||
+            "CONSULTA_EVALUADA"
+    };
+
     return (
-        <div
-            className="medical-modal-overlay"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="medical-modal-title"
-        >
-            <div className="medical-modal">
-                <header className="medical-modal-header">
-                    <div>
-                        <h2 id="medical-modal-title">
-                            Consulta Médica
-                        </h2>
+        <>
+            <div
+                className="medical-modal-overlay"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="medical-modal-title"
+            >
+                <div className="medical-modal">
+                    <header className="medical-modal-header">
+                        <div>
+                            <h2 id="medical-modal-title">
+                                Consulta Médica
+                            </h2>
 
-                        <p>
-                            Cita #{appointmentId}
-                        </p>
-                    </div>
+                            <p>
+                                Cita #{appointmentId}
+                            </p>
+                        </div>
 
-                    <button
-                        type="button"
-                        className="medical-close-button"
-                        onClick={onClose}
-                        disabled={processing}
-                        aria-label="Cerrar"
+                        <button
+                            type="button"
+                            className="medical-close-button"
+                            onClick={onClose}
+                            disabled={processing}
+                            aria-label="Cerrar"
+                        >
+                            ×
+                        </button>
+                    </header>
+
+                    {generalError && (
+                        <div className="medical-error">
+                            {generalError}
+                        </div>
+                    )}
+
+                    {consultation && (
+                        <>
+                            <section className="medical-context">
+                                <div>
+                                    <span>Paciente</span>
+
+                                    <strong>
+                                        {
+                                            consultation
+                                                .patientName
+                                        }
+                                    </strong>
+                                </div>
+
+                                <div>
+                                    <span>Médico</span>
+
+                                    <strong>
+                                        {
+                                            consultation
+                                                .doctorName
+                                        }
+                                    </strong>
+                                </div>
+
+                                <div>
+                                    <span>Especialidad</span>
+
+                                    <strong>
+                                        {
+                                            consultation
+                                                .specialty
+                                        }
+                                    </strong>
+                                </div>
+
+                                <div>
+                                    <span>Prioridad</span>
+
+                                    <strong
+                                        className={
+                                            consultation.priority
+                                                === "EMERGENCIA"
+                                                ? "medical-emergency"
+                                                : ""
+                                        }
+                                    >
+                                        {
+                                            consultation
+                                                .priority
+                                        }
+                                    </strong>
+                                </div>
+                            </section>
+
+                            <VitalSignsSummary
+                                vitalSigns={
+                                    consultation.vitalSigns
+                                }
+                            />
+                        </>
+                    )}
+
+                    <form
+                        className="medical-form"
+                        onSubmit={handleSubmit}
                     >
-                        ×
-                    </button>
-                </header>
-
-                {generalError && (
-                    <div className="medical-error">
-                        {generalError}
-                    </div>
-                )}
-
-                {consultation && (
-                    <>
-                        <section className="medical-context">
-                            <div>
-                                <span>Paciente</span>
-
-                                <strong>
-                                    {
-                                        consultation
-                                            .patientName
-                                    }
-                                </strong>
-                            </div>
-
-                            <div>
-                                <span>Médico</span>
-
-                                <strong>
-                                    {
-                                        consultation
-                                            .doctorName
-                                    }
-                                </strong>
-                            </div>
-
-                            <div>
-                                <span>Especialidad</span>
-
-                                <strong>
-                                    {
-                                        consultation
-                                            .specialty
-                                    }
-                                </strong>
-                            </div>
-
-                            <div>
-                                <span>Prioridad</span>
-
-                                <strong
-                                    className={
-                                        consultation.priority
-                                            === "EMERGENCIA"
-                                            ? "medical-emergency"
-                                            : ""
-                                    }
-                                >
-                                    {
-                                        consultation
-                                            .priority
-                                    }
-                                </strong>
-                            </div>
-                        </section>
-
-                        <VitalSignsSummary
-                            vitalSigns={
-                                consultation.vitalSigns
+                        <ConsultationTextArea
+                            id="visit-reason"
+                            label="Motivo de visita"
+                            required
+                            maxLength={1000}
+                            value={
+                                formData.visitReason
+                            }
+                            error={
+                                errors.visitReason
+                            }
+                            onChange={(value) =>
+                                updateField(
+                                    "visitReason",
+                                    value
+                                )
                             }
                         />
-                    </>
-                )}
 
-                <form
-                    className="medical-form"
-                    onSubmit={handleSubmit}
-                >
-                    <ConsultationTextArea
-                        id="visit-reason"
-                        label="Motivo de visita"
-                        required
-                        maxLength={1000}
-                        value={
-                            formData.visitReason
-                        }
-                        error={
-                            errors.visitReason
-                        }
-                        onChange={(value) =>
-                            updateField(
-                                "visitReason",
-                                value
-                            )
-                        }
-                    />
+                        <ConsultationTextArea
+                            id="clinical-findings"
+                            label="Hallazgos clínicos"
+                            maxLength={4000}
+                            value={
+                                formData
+                                    .clinicalFindings
+                            }
+                            error={
+                                errors
+                                    .clinicalFindings
+                            }
+                            onChange={(value) =>
+                                updateField(
+                                    "clinicalFindings",
+                                    value
+                                )
+                            }
+                        />
 
-                    <ConsultationTextArea
-                        id="clinical-findings"
-                        label="Hallazgos clínicos"
-                        maxLength={4000}
-                        value={
-                            formData
-                                .clinicalFindings
-                        }
-                        error={
-                            errors
-                                .clinicalFindings
-                        }
-                        onChange={(value) =>
-                            updateField(
-                                "clinicalFindings",
-                                value
-                            )
-                        }
-                    />
+                        <div className="medical-form-group">
+                            <label htmlFor="icd10-search">
+                                Código CIE-10
+                            </label>
 
-                    <div className="medical-form-group">
-                        <label htmlFor="icd10-search">
-                            Código CIE-10
-                        </label>
-
-                        <div className="icd10-input-row">
-                            <input
-                                id="icd10-search"
-                                type="text"
-                                autoComplete="off"
-                                placeholder={
-                                    "Busque por código o descripción"
-                                }
-                                value={icd10Query}
-                                className={
-                                    errors.icd10Code
-                                        ? "input-error"
-                                        : ""
-                                }
-                                onChange={(event) => {
-                                    setIcd10Query(
-                                        event.target.value
-                                    );
-
-                                    setFormData(
-                                        previous => ({
-                                            ...previous,
-                                            icd10Code: "",
-                                            icd10Description:
-                                                ""
-                                        })
-                                    );
-
-                                    setErrors(
-                                        previous => ({
-                                            ...previous,
-                                            icd10Code: ""
-                                        })
-                                    );
-                                }}
-                                onFocus={() => {
-                                    if (
-                                        icd10Results.length >
-                                        0
-                                    ) {
-                                        setShowIcd10Results(
-                                            true
+                            <div className="icd10-input-row">
+                                <input
+                                    id="icd10-search"
+                                    type="text"
+                                    autoComplete="off"
+                                    placeholder={
+                                        "Busque por código o descripción"
+                                    }
+                                    value={icd10Query}
+                                    className={
+                                        errors.icd10Code
+                                            ? "input-error"
+                                            : ""
+                                    }
+                                    onChange={(event) => {
+                                        setIcd10Query(
+                                            event.target.value
                                         );
-                                    }
-                                }}
-                            />
 
-                            {icd10Query && (
-                                <button
-                                    type="button"
-                                    className="icd10-clear-button"
-                                    onClick={
-                                        clearIcd10Selection
+                                        setFormData(
+                                            previous => ({
+                                                ...previous,
+                                                icd10Code: "",
+                                                icd10Description:
+                                                    ""
+                                            })
+                                        );
+
+                                        setErrors(
+                                            previous => ({
+                                                ...previous,
+                                                icd10Code: ""
+                                            })
+                                        );
+                                    }}
+                                    onFocus={() => {
+                                        if (
+                                            icd10Results.length >
+                                            0
+                                        ) {
+                                            setShowIcd10Results(
+                                                true
+                                            );
+                                        }
+                                    }}
+                                />
+
+                                {icd10Query && (
+                                    <button
+                                        type="button"
+                                        className="icd10-clear-button"
+                                        onClick={
+                                            clearIcd10Selection
+                                        }
+                                    >
+                                        Limpiar
+                                    </button>
+                                )}
+                            </div>
+
+                            {searchingIcd10 && (
+                                <small>
+                                    Buscando códigos...
+                                </small>
+                            )}
+
+                            {showIcd10Results && (
+                                <div className="icd10-results">
+                                    {icd10Results.length > 0 ? (
+                                        icd10Results.map(
+                                            item => (
+                                                <button
+                                                    key={item.id}
+                                                    type="button"
+                                                    className={
+                                                        "icd10-result"
+                                                    }
+                                                    onClick={() =>
+                                                        selectIcd10Code(
+                                                            item
+                                                        )
+                                                    }
+                                                >
+                                                    <strong>
+                                                        {item.code}
+                                                    </strong>
+
+                                                    <span>
+                                                        {
+                                                            item
+                                                                .description
+                                                        }
+                                                    </span>
+                                                </button>
+                                            )
+                                        )
+                                    ) : (
+                                        <div className="icd10-empty">
+                                            No se encontraron
+                                            coincidencias.
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {errors.icd10Code && (
+                                <div className="error-message">
+                                    {errors.icd10Code}
+                                </div>
+                            )}
+
+                            {formData.icd10Code && (
+                                <div className="icd10-selected">
+                                    Seleccionado:{" "}
+                                    <strong>
+                                        {
+                                            formData
+                                                .icd10Code
+                                        }
+                                    </strong>
+                                    {" - "}
+                                    {
+                                        formData
+                                            .icd10Description
                                     }
-                                >
-                                    Limpiar
-                                </button>
+                                </div>
                             )}
                         </div>
 
-                        {searchingIcd10 && (
-                            <small>
-                                Buscando códigos...
-                            </small>
-                        )}
-
-                        {showIcd10Results && (
-                            <div className="icd10-results">
-                                {icd10Results.length > 0 ? (
-                                    icd10Results.map(
-                                        item => (
-                                            <button
-                                                key={item.id}
-                                                type="button"
-                                                className={
-                                                    "icd10-result"
-                                                }
-                                                onClick={() =>
-                                                    selectIcd10Code(
-                                                        item
-                                                    )
-                                                }
-                                            >
-                                                <strong>
-                                                    {item.code}
-                                                </strong>
-
-                                                <span>
-                                                    {
-                                                        item
-                                                            .description
-                                                    }
-                                                </span>
-                                            </button>
-                                        )
-                                    )
-                                ) : (
-                                    <div className="icd10-empty">
-                                        No se encontraron
-                                        coincidencias.
-                                    </div>
-                                )}
-                            </div>
-                        )}
-
-                        {errors.icd10Code && (
-                            <div className="error-message">
-                                {errors.icd10Code}
-                            </div>
-                        )}
-
-                        {formData.icd10Code && (
-                            <div className="icd10-selected">
-                                Seleccionado:{" "}
-                                <strong>
-                                    {
-                                        formData
-                                            .icd10Code
-                                    }
-                                </strong>
-                                {" - "}
-                                {
-                                    formData
-                                        .icd10Description
-                                }
-                            </div>
-                        )}
-                    </div>
-
-                    <ConsultationTextArea
-                        id="diagnosis"
-                        label="Diagnóstico"
-                        required={
-                            formData.status ===
-                            "FINALIZADA"
-                        }
-                        maxLength={4000}
-                        value={
-                            formData.diagnosis
-                        }
-                        error={
-                            errors.diagnosis
-                        }
-                        onChange={(value) =>
-                            updateField(
-                                "diagnosis",
-                                value
-                            )
-                        }
-                    />
-
-                    <ConsultationTextArea
-                        id="treatment-plan"
-                        label="Plan de tratamiento"
-                        maxLength={4000}
-                        value={
-                            formData.treatmentPlan
-                        }
-                        error={
-                            errors.treatmentPlan
-                        }
-                        onChange={(value) =>
-                            updateField(
-                                "treatmentPlan",
-                                value
-                            )
-                        }
-                    />
-
-                    <ConsultationTextArea
-                        id="additional-notes"
-                        label="Notas adicionales"
-                        maxLength={4000}
-                        value={
-                            formData.additionalNotes
-                        }
-                        error={
-                            errors.additionalNotes
-                        }
-                        onChange={(value) =>
-                            updateField(
-                                "additionalNotes",
-                                value
-                            )
-                        }
-                    />
-
-                    <div className="medical-form-group">
-                        <label htmlFor="consultation-status">
-                            Estado de consulta
-                        </label>
-
-                        <select
-                            id="consultation-status"
-                            value={formData.status}
-                            onChange={(event) =>
+                        <ConsultationTextArea
+                            id="diagnosis"
+                            label="Diagnóstico"
+                            required={
+                                formData.status ===
+                                "FINALIZADA"
+                            }
+                            maxLength={4000}
+                            value={
+                                formData.diagnosis
+                            }
+                            error={
+                                errors.diagnosis
+                            }
+                            onChange={(value) =>
                                 updateField(
-                                    "status",
-                                    event.target.value
+                                    "diagnosis",
+                                    value
                                 )
                             }
+                        />
+
+                        <ConsultationTextArea
+                            id="treatment-plan"
+                            label="Plan de tratamiento"
+                            maxLength={4000}
+                            value={
+                                formData.treatmentPlan
+                            }
+                            error={
+                                errors.treatmentPlan
+                            }
+                            onChange={(value) =>
+                                updateField(
+                                    "treatmentPlan",
+                                    value
+                                )
+                            }
+                        />
+
+                        <ConsultationTextArea
+                            id="additional-notes"
+                            label="Notas adicionales"
+                            maxLength={4000}
+                            value={
+                                formData.additionalNotes
+                            }
+                            error={
+                                errors.additionalNotes
+                            }
+                            onChange={(value) =>
+                                updateField(
+                                    "additionalNotes",
+                                    value
+                                )
+                            }
+                        />
+
+                        <div className="medical-form-group">
+                            <label htmlFor="consultation-status">
+                                Estado de consulta
+                            </label>
+
+                            <select
+                                id="consultation-status"
+                                value={formData.status}
+                                onChange={(event) =>
+                                    updateField(
+                                        "status",
+                                        event.target.value
+                                    )
+                                }
+                            >
+                                <option value="EN_CURSO">
+                                    En curso
+                                </option>
+
+                                <option value="FINALIZADA">
+                                    Finalizada
+                                </option>
+                            </select>
+
+                            {formData.status ===
+                                "FINALIZADA" && (
+                                    <small>
+                                        El diagnóstico será
+                                        obligatorio para finalizar.
+                                    </small>
+                                )}
+                        </div>
+
+                        <div className="medical-modal-actions">
+                            <button
+                                type="button"
+                                className="btn btn-secondary"
+                                onClick={onClose}
+                                disabled={processing}
+                            >
+                                Cancelar
+                            </button>
+
+                            <button
+                                type="submit"
+                                className="btn btn-primary"
+                                disabled={processing}
+                            >
+                                {processing
+                                    ? "Guardando..."
+                                    : formData.status ===
+                                        "FINALIZADA"
+                                        ? "Finalizar Consulta"
+                                        : "Guardar en Curso"}
+                            </button>
+                        </div>
+                    </form>
+
+                    {consultationMessage && (
+                        <div
+                            className="medical-success"
+                            role="status"
+                            aria-live="polite"
                         >
-                            <option value="EN_CURSO">
-                                En curso
-                            </option>
+                            {consultationMessage}
+                        </div>
+                    )}
 
-                            <option value="FINALIZADA">
-                                Finalizada
-                            </option>
-                        </select>
+                    {consultation
+                        ?.consultationStatus ===
+                        "FINALIZADA" && (
+                            <section className="medical-laboratory-section">
+                                <div className="medical-laboratory-header">
+                                    <div>
+                                        <h3>
+                                            Gestión de laboratorio
+                                        </h3>
 
-                        {formData.status ===
-                            "FINALIZADA" && (
-                                <small>
-                                    El diagnóstico será
-                                    obligatorio para finalizar.
-                                </small>
-                            )}
-                    </div>
+                                        <p>
+                                            La evaluación médica fue finalizada.
+                                            Puede generar una orden de laboratorio
+                                            antes de cerrar completamente la atención.
+                                        </p>
+                                    </div>
 
-                    <div className="medical-modal-actions">
-                        <button
-                            type="button"
-                            className="btn btn-secondary"
-                            onClick={onClose}
-                            disabled={processing}
-                        >
-                            Cancelar
-                        </button>
+                                    {consultation
+                                        ?.hasActiveLaboratoryOrder && (
+                                            <span className="medical-laboratory-status">
+                                                Orden registrada
+                                            </span>
+                                        )}
+                                </div>
 
-                        <button
-                            type="submit"
-                            className="btn btn-primary"
-                            disabled={processing}
-                        >
-                            {processing
-                                ? "Guardando..."
-                                : formData.status ===
-                                    "FINALIZADA"
-                                    ? "Finalizar Consulta"
-                                    : "Guardar en Curso"}
-                        </button>
-                    </div>
-                </form>
+                                {createdLaboratoryOrder ? (
+                                    <div className="medical-created-order">
+                                        <div>
+                                            <span>
+                                                Número de orden
+                                            </span>
+
+                                            <strong>
+                                                {
+                                                    createdLaboratoryOrder
+                                                        .orderNumber
+                                                }
+                                            </strong>
+                                        </div>
+
+                                        <div>
+                                            <span>
+                                                Estado
+                                            </span>
+
+                                            <strong>
+                                                {formatStatus(
+                                                    createdLaboratoryOrder
+                                                        .status
+                                                )}
+                                            </strong>
+                                        </div>
+
+                                        <div>
+                                            <span>
+                                                Exámenes
+                                            </span>
+
+                                            <strong>
+                                                {
+                                                    createdLaboratoryOrder
+                                                        .totalTests
+                                                }
+                                            </strong>
+                                        </div>
+
+                                        <div>
+                                            <span>
+                                                Total
+                                            </span>
+
+                                            <strong>
+                                                {formatAmount(
+                                                    createdLaboratoryOrder
+                                                        .totalAmount
+                                                )}
+                                            </strong>
+                                        </div>
+
+                                        {createdLaboratoryOrder
+                                            .externalOrder ? (
+                                            <p className="medical-order-external-message">
+                                                Esta es una orden externa.
+                                                El paciente realizará los
+                                                exámenes fuera del hospital
+                                                y deberá presentar los
+                                                resultados posteriormente.
+                                            </p>
+                                        ) : (
+                                            <p className="medical-order-payment-message">
+                                                El paciente debe dirigirse
+                                                a caja antes de la toma de
+                                                muestras.
+                                            </p>
+                                        )}
+                                    </div>
+                                ) : consultation
+                                    ?.hasActiveLaboratoryOrder ? (
+                                    <div className="medical-laboratory-info">
+                                        La consulta ya cuenta con una orden
+                                        activa de laboratorio. No es posible
+                                        generar una orden adicional.
+                                    </div>
+                                ) : consultation
+                                    ?.canCreateLaboratoryOrder ? (
+                                    <button
+                                        type="button"
+                                        className="btn btn-primary medical-laboratory-button"
+                                        onClick={
+                                            handleOpenLaboratoryOrder
+                                        }
+                                        disabled={processing}
+                                    >
+                                        Generar orden de laboratorio
+                                    </button>
+                                ) : (
+                                    <div className="medical-laboratory-info">
+                                        La consulta no se encuentra habilitada
+                                        para generar una orden de laboratorio.
+                                    </div>
+                                )}
+                            </section>
+                        )}
+                </div>
             </div>
-        </div>
+
+            {
+                showLaboratoryOrderModal && (
+                    <LaboratoryOrderModal
+                        appointment={
+                            laboratoryAppointment
+                        }
+                        onClose={() =>
+                            setShowLaboratoryOrderModal(
+                                false
+                            )
+                        }
+                        onCreated={
+                            handleLaboratoryOrderCreated
+                        }
+                    />
+                )
+            }
+        </>
     );
 }
 
@@ -914,6 +1258,45 @@ function ConsultationTextArea({
     );
 }
 
+/**
+ * Convierte un estado técnico del backend
+ * en un texto más legible.
+ *
+ * Ejemplo:
+ * PENDIENTE_DE_PAGO
+ * se muestra como:
+ * PENDIENTE DE PAGO
+ */
+function formatStatus(status) {
+    if (!status) {
+        return "No disponible";
+    }
+
+    return String(status)
+        .replaceAll("_", " ");
+}
+
+/**
+ * Convierte un valor numérico a formato monetario
+ * expresado en quetzales.
+ *
+ * Ejemplo:
+ * 150
+ * se muestra como:
+ * Q150.00
+ */
+function formatAmount(value) {
+    return `Q${Number(
+        value || 0
+    ).toFixed(2)}`;
+}
+
+/**
+ * Obtiene el mensaje enviado por Spring Boot.
+ *
+ * Si el backend no proporciona un mensaje,
+ * devuelve el texto alternativo recibido.
+ */
 function getBackendMessage(
     error,
     fallback

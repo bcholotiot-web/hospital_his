@@ -1,5 +1,6 @@
 package com.hospital.his.laboratorypayment.dto;
 
+import com.hospital.his.laboratory.dto.LaboratoryOrderItemResponse;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -7,6 +8,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @Getter
 @Setter
@@ -54,4 +56,6 @@ public class LaboratoryPaymentResponse {
     private String laboratoryOrderStatus;
 
     private String message;
+
+    private List<LaboratoryOrderItemResponse> items;
 }

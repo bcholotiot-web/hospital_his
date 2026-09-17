@@ -64,4 +64,15 @@ public class MedicalConsultationResponse {
     private VitalSignsResponse vitalSigns;
 
     private String message;
+
+    /**
+     * Indica si el médico puede generar una orden
+     * de laboratorio desde esta consulta.
+     */
+    private Boolean canCreateLaboratoryOrder;
+
+    /**
+     * Indica si ya existe una orden activa.
+     */
+    private Boolean hasActiveLaboratoryOrder;
 }

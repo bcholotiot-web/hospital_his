@@ -78,4 +78,31 @@ public class UserController {
 
         return authentication.toString();
     }
+
+
+    /**
+     * RN-CU01-01:
+     * Buscar usuarios activos por el campo seleccionado.
+     *
+     * Ejemplos:
+     *
+     * GET /api/users/search?field=NAME&value=Juan
+     * GET /api/users/search?field=DPI&value=1234
+     * GET /api/users/search?field=USERNAME&value=admin
+     * GET /api/users/search?field=ROLE&value=MEDICO
+     * GET /api/users/search?field=BRANCH&value=Central
+     */
+    @GetMapping("/search")
+    public ResponseEntity<List<UserResponse>>
+    searchUsers(
+            @RequestParam String field,
+            @RequestParam String value
+    ) {
+        return ResponseEntity.ok(
+                userService.searchUsers(
+                        field,
+                        value
+                )
+        );
+    }
 }

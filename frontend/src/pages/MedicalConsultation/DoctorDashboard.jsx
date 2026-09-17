@@ -297,16 +297,39 @@ function DoctorDashboard() {
         }
     };
 
-    const handleConsultationSaved = async (response) => {
-        setSelectedAppointmentId(null);
-
+    /**
+ * Recibe la respuesta después de guardar o finalizar
+ * una consulta médica.
+ *
+ * options.keepOpen:
+ * true  -> mantiene abierta la consulta.
+ * false -> cierra el modal.
+ */
+    const handleConsultationSaved = async (
+        response,
+        options = {}
+    ) => {
         setSuccessMessage(
-            response.message
+            response?.message ||
+            "La consulta médica fue actualizada correctamente."
         );
 
         setErrorMessage("");
 
+        /*
+         * Actualizar la cola para obtener el estado
+         * definitivo desde Spring Boot.
+         */
         await loadQueue(false);
+
+        /*
+         * Cuando la evaluación fue finalizada,
+         * MedicalConsultationModal puede solicitar que
+         * permanezca abierto.
+         */
+        if (!options.keepOpen) {
+            setSelectedAppointmentId(null);
+        }
     };
 
     const handleOpenLaboratoryOrder = (
@@ -375,6 +398,62 @@ function DoctorDashboard() {
                         {successMessage}
                     </div>
                 )}
+
+                {laboratoryOrderResult && (
+                    <div className="doctor-lab-created-card">
+                        <div>
+                            <h3>
+                                Orden de laboratorio creada
+                            </h3>
+
+                            <p>
+                                <strong>Orden:</strong>{" "}
+                                {
+                                    laboratoryOrderResult
+                                        .orderNumber
+                                }
+                            </p>
+
+                            <p>
+                                <strong>Exámenes:</strong>{" "}
+                                {
+                                    laboratoryOrderResult
+                                        .totalTests
+                                }
+                            </p>
+
+                            <p>
+                                <strong>Total:</strong>{" "}
+                                Q
+                                {Number(
+                                    laboratoryOrderResult
+                                        .totalAmount || 0
+                                ).toFixed(2)}
+                            </p>
+
+                            <p>
+                                <strong>Estado:</strong>{" "}
+                                {formatStatus(
+                                    laboratoryOrderResult
+                                        .status
+                                )}
+                            </p>
+                        </div>
+
+                        <button
+                            type="button"
+                            className="btn btn-secondary"
+                            onClick={() =>
+                                setLaboratoryOrderResult(
+                                    null
+                                )
+                            }
+                        >
+                            Cerrar
+                        </button>
+                    </div>
+                )}
+
 
                 {loading ? (
                     <div className="doctor-loading">
@@ -451,9 +530,10 @@ function DoctorDashboard() {
                             }
                             onPrescription={(appointment) => {
                                 setErrorMessage(
-                                    `La generación de recetas para la cita #${appointment.appointmentId} se implementará en CU-10.`
+                                    `La generación de recetas para la cita #${appointment.appointmentId} todavía no está disponible.`
                                 );
                             }}
+
                             onFollowUp={(appointment) => {
                                 setErrorMessage(
                                     `El seguimiento para la cita #${appointment.appointmentId} se implementará en CU-11.`
@@ -676,10 +756,11 @@ function DoctorSection({
                                             </button>
                                         )}
 
-                                        {appointment.canGenerateLabOrder && (
+                                        {appointment.canCreateLaboratoryOrder && (
                                             <button
                                                 type="button"
                                                 className="doctor-secondary-action"
+                                                disabled={processing}
                                                 onClick={() =>
                                                     onLabOrder(
                                                         appointment
@@ -689,6 +770,7 @@ function DoctorSection({
                                                 Generar Orden de Laboratorio
                                             </button>
                                         )}
+
 
                                         {appointment.canGeneratePrescription && (
                                             <button
@@ -784,6 +866,19 @@ function formatDateTime(value) {
                 minute: "2-digit"
             }
         );
+}
+
+/**
+ * Convierte los valores de los enums del backend
+ * en texto legible para la interfaz.
+ */
+function formatStatus(status) {
+    if (!status) {
+        return "No disponible";
+    }
+
+    return String(status)
+        .replaceAll("_", " ");
 }
 
 function getBackendMessage(

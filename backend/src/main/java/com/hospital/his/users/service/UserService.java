@@ -114,26 +114,117 @@ public class UserService {
     }
 
     //Se listan los usuarios
+    /**
+     * Lista solamente usuarios activos.
+     *
+     * Los usuarios eliminados lógicamente continúan
+     * almacenados en PostgreSQL con active = false.
+     */
     public List<UserResponse> getAllUsers() {
-
-        return userRepository.findAll()
+        return userRepository
+                .findAllByActiveTrueOrderByIdAsc()
                 .stream()
-                .map(user -> UserResponse.builder()
-                        .id(user.getId())
-                        .fullName(user.getFullName())
-                        .dpi(user.getDpi())
-                        .nit(user.getNit())
-                        .phone(user.getPhone())
-                        .email(user.getEmail())
-                        .username(user.getUsername())
-                        .role(user.getRole().getName())
-                        .insuranceNumber(
-                                user.getInsuranceNumber())
-                        .active(user.getActive())
-                        .roleId(user.getRole() != null ? user.getRole().getId() : null)
-                        .branchId(user.getBranch() != null ? user.getBranch().getId() : null)
-                        .specialtyId(user.getSpecialty() != null ? user.getSpecialty().getId() : null)
-                        .build())
+                .map(this::buildUserResponse)
+                .toList();
+    }
+
+    /**
+     * RN-CU01-01:
+     * Busca usuarios activos según el campo seleccionado.
+     *
+     * Campos permitidos:
+     * NAME
+     * DPI
+     * USERNAME
+     * ROLE
+     * BRANCH
+     */
+    public List<UserResponse> searchUsers(String field, String value) {
+        String normalizedField =
+                field == null
+                        ? ""
+                        : field
+                        .trim()
+                        .toUpperCase(
+                                Locale.ROOT
+                        );
+
+        String normalizedValue =
+                value == null
+                        ? ""
+                        : value.trim();
+
+        /*
+         * Validar que se haya seleccionado un filtro.
+         */
+        if (normalizedField.isBlank()) {
+            throw new RuntimeException(
+                    "Debe seleccionar un campo de filtro."
+            );
+        }
+
+        /*
+         * Validar que exista un criterio.
+         */
+        if (normalizedValue.isBlank()) {
+            throw new RuntimeException(
+                    "Debe ingresar un criterio de búsqueda."
+            );
+        }
+
+        List<User> users;
+
+        switch (normalizedField) {
+            case "NAME":
+            case "FULL_NAME":
+            case "FULLNAME":
+                users = userRepository
+                        .findByActiveTrueAndFullNameContainingIgnoreCaseOrderByIdAsc(
+                                normalizedValue
+                        );
+                break;
+
+            case "DPI":
+                validateDpiSearchCriterion(
+                        normalizedValue
+                );
+
+                users = userRepository
+                        .findByActiveTrueAndDpiContainingOrderByIdAsc(
+                                normalizedValue
+                        );
+                break;
+
+            case "USERNAME":
+                users = userRepository
+                        .findByActiveTrueAndUsernameContainingIgnoreCaseOrderByIdAsc(
+                                normalizedValue
+                        );
+                break;
+
+            case "ROLE":
+                users = userRepository
+                        .findByActiveTrueAndRole_NameContainingIgnoreCaseOrderByIdAsc(
+                                normalizedValue
+                        );
+                break;
+
+            case "BRANCH":
+                users = userRepository
+                        .findByActiveTrueAndBranch_NameContainingIgnoreCaseOrderByIdAsc(
+                                normalizedValue
+                        );
+                break;
+
+            default:
+                throw new RuntimeException(
+                        "El campo de filtro seleccionado no es válido."
+                );
+        }
+
+        return users
+                .stream()
+                .map(this::buildUserResponse)
                 .toList();
     }
 
@@ -417,6 +508,76 @@ public class UserService {
                 .toUpperCase(Locale.ROOT);
 
         return normalizedRoleName.equals("MEDICO");
+    }
+
+    private UserResponse buildUserResponse(User user) {
+        return UserResponse.builder()
+                .id(user.getId())
+                .fullName(user.getFullName())
+                .dpi(user.getDpi())
+                .nit(user.getNit())
+                .phone(user.getPhone())
+                .email(user.getEmail())
+                .username(user.getUsername())
+                .role(
+                        user.getRole() != null
+                                ? user.getRole().getName()
+                                : null
+                )
+                .insuranceNumber(
+                        user.getInsuranceNumber()
+                )
+                .branch(
+                        user.getBranch() != null
+                                ? user.getBranch().getName()
+                                : null
+                )
+                .specialty(
+                        user.getSpecialty() != null
+                                ? user.getSpecialty().getName()
+                                : null
+                )
+                .active(user.getActive())
+                .roleId(
+                        user.getRole() != null
+                                ? user.getRole().getId()
+                                : null
+                )
+                .branchId(
+                        user.getBranch() != null
+                                ? user.getBranch().getId()
+                                : null
+                )
+                .specialtyId(
+                        user.getSpecialty() != null
+                                ? user.getSpecialty().getId()
+                                : null
+                )
+                .build();
+    }
+
+    /**
+     * Valida el criterio utilizado en una búsqueda por DPI.
+     *
+     * Para mantenimiento se permite ingresar entre 1 y 13
+     * dígitos y obtener coincidencias parciales.
+     */
+    private void validateDpiSearchCriterion(
+            String dpi
+    ) {
+        if (!dpi.matches("\\d+")) {
+            throw new RuntimeException(
+                    "El criterio de búsqueda del DPI debe "
+                            + "contener únicamente números."
+            );
+        }
+
+        if (dpi.length() > 13) {
+            throw new RuntimeException(
+                    "El criterio de búsqueda del DPI no puede "
+                            + "exceder los 13 dígitos."
+            );
+        }
     }
 
 }

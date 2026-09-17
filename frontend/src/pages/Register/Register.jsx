@@ -150,6 +150,18 @@ function Register() {
             setGeneralMessage(message);
         }
     };
+
+    const handleBackToPortal = () => {
+        console.log(
+            "Se seleccionó Volver al portal"
+        );
+
+        console.log(
+            "Ruta actual:",
+            window.location.pathname
+        );
+    };
+
     return (
         <div className="register-page">
             <div className="register-card">
@@ -305,7 +317,10 @@ function Register() {
                 </form>
 
                 <div className="register-actions">
-                    <Link to="/">
+                    <Link
+                        to="/"
+                        onClick={handleBackToPortal}
+                    >
                         Volver al portal
                     </Link>
 

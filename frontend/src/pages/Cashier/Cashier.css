@@ -198,3 +198,40 @@
         grid-template-columns: 1fr;
     }
 }
+
+.cashier-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+}
+
+.cashier-module-actions {
+    display: flex;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+.cashier-module-actions a {
+    text-decoration: none;
+}
+
+.cashier-module-title {
+    margin: 24px 0 0;
+    color: #1e3a8a;
+}
+
+@media (max-width: 700px) {
+    .cashier-header {
+        flex-direction: column;
+    }
+
+    .cashier-module-actions,
+    .cashier-module-actions a {
+        width: 100%;
+    }
+
+    .cashier-module-actions a {
+        text-align: center;
+    }
+}

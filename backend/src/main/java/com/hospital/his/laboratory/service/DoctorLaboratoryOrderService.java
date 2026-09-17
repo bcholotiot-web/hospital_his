@@ -26,13 +26,17 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import java.text.Normalizer;
 import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
+
+//Clase para que el médico cree la orden.
 
 @Service
 public class DoctorLaboratoryOrderService {
@@ -89,10 +93,7 @@ public class DoctorLaboratoryOrderService {
      * para el formulario del médico.
      */
     @Transactional(readOnly = true)
-    public List<LaboratoryTestResponse>
-    getActiveLaboratoryTests(
-            String doctorUsername
-    ) {
+    public List<LaboratoryTestResponse> getActiveLaboratoryTests(String doctorUsername) {
         validateAuthenticatedDoctor(
                 doctorUsername
         );
@@ -108,11 +109,7 @@ public class DoctorLaboratoryOrderService {
      * Genera una orden desde una consulta evaluada.
      */
     @Transactional
-    public LaboratoryOrderResponse
-    createLaboratoryOrder(
-            CreateLaboratoryOrderRequest request,
-            String doctorUsername
-    ) {
+    public LaboratoryOrderResponse createLaboratoryOrder(CreateLaboratoryOrderRequest request, String doctorUsername) {
         User doctor =
                 validateAuthenticatedDoctor(
                         doctorUsername
@@ -170,83 +167,39 @@ public class DoctorLaboratoryOrderService {
                         uniqueTestIds
                 );
 
-        BigDecimal totalAmount =
-                tests.stream()
-                        .map(
-                                LaboratoryTest::getPrice
-                        )
-                        .reduce(
-                                BigDecimal.ZERO,
-                                BigDecimal::add
-                        );
+        BigDecimal totalAmount = calculateTotalAmount(tests);
 
         LocalDateTime now =
                 LocalDateTime.now();
 
         LaboratoryOrder order =
                 LaboratoryOrder.builder()
-                        .orderNumber(
-                                generateOrderNumber()
-                        )
-                        .appointment(
-                                appointment
-                        )
-                        .medicalConsultation(
-                                consultation
-                        )
-                        .patient(
-                                appointment.getPatient()
-                        )
-                        .doctor(
-                                doctor
-                        )
-                        .status(
-                                LaboratoryOrderStatus
-                                        .PENDIENTE_DE_PAGO
-                        )
-                        .totalAmount(
-                                totalAmount
-                        )
-                        .externalOrder(
-                                Boolean.TRUE.equals(
-                                        request.getExternalOrder()
-                                )
-                        )
-                        .notes(
-                                normalizeNotes(
-                                        request.getNotes()
-                                )
-                        )
+                        .orderNumber(generateOrderNumber())
+                        .appointment(appointment)
+                        .medicalConsultation(consultation)
+                        .patient(appointment.getPatient())
+                        .doctor(doctor)
+                        .status(LaboratoryOrderStatus.PENDIENTE_DE_PAGO)
+                        .totalAmount(totalAmount)
+                        .externalOrder(Boolean.TRUE.equals(request.getExternalOrder()))
+                        .notes(normalizeNotes(request.getNotes()))
                         .createdAt(now)
                         .updatedAt(now)
                         .paidAt(null)
                         .completedAt(null)
                         .active(true)
-                        .items(
-                                new ArrayList<>()
-                        )
+                        .items(new ArrayList<>())
                         .build();
 
+        //Crea cada detalle con su precio historico
         for (LaboratoryTest test : tests) {
-            LaboratoryOrderItem item =
-                    LaboratoryOrderItem.builder()
-                            .laboratoryOrder(
-                                    order
-                            )
-                            .laboratoryTest(
-                                    test
-                            )
-                            .unitPrice(
-                                    test.getPrice()
-                            )
-                            .status(
-                                    LaboratoryOrderItemStatus
-                                            .PENDIENTE
-                            )
+            LaboratoryOrderItem item = LaboratoryOrderItem.builder()
+                            .laboratoryOrder(order)
+                            .laboratoryTest(test)
+                            .unitPrice(test.getPrice().setScale(2, RoundingMode.HALF_UP))
+                            .status(LaboratoryOrderItemStatus.PENDIENTE)
                             .resultValue(null)
-                            .resultUnit(
-                                    test.getDefaultUnit()
-                            )
+                            .resultUnit(test.getDefaultUnit())
                             .resultDate(null)
                             .outOfRange(false)
                             .resultNotes(null)
@@ -261,19 +214,10 @@ public class DoctorLaboratoryOrderService {
                     item
             );
         }
+        //Guarda orden y detalles
+        order = saveLaboratoryOrder(order);
 
-        try {
-            order =
-                    laboratoryOrderRepository
-                            .saveAndFlush(order);
-
-        } catch (DataIntegrityViolationException exception) {
-            throw new RuntimeException(
-                    "No fue posible crear la orden. "
-                            + "Verifique que la consulta no tenga otra orden activa."
-            );
-        }
-
+        //Registro en auditoria
         auditService.log(
                 doctorUsername,
                 "CREATE_LABORATORY_ORDER",
@@ -289,11 +233,55 @@ public class DoctorLaboratoryOrderService {
                         + "."
         );
 
-        return toOrderResponse(
-                order,
-                "Orden de laboratorio creada correctamente. "
-                        + "La orden se encuentra pendiente de pago."
-        );
+        boolean externalOrder =
+                Boolean.TRUE.equals(
+                        order.getExternalOrder()
+                );
+
+        String responseMessage;
+
+        if (externalOrder) {
+            responseMessage = "Orden externa de laboratorio creada correctamente. El paciente realizará los exámenes fuera del hospital y deberá presentar los resultados al médico.";
+        } else {
+            responseMessage = "Orden de laboratorio creada correctamente. La orden se encuentra pendiente de pago. El paciente debe dirigirse a caja antes de la toma de muestras.";
+        }
+
+        return toOrderResponse(order,responseMessage);
+    }
+
+    /**
+     * Verifica que todos los exámenes tengan un precio
+     * válido antes de generar la orden.
+     */
+    private void validateTestPrices(List<LaboratoryTest> tests) {
+        for (LaboratoryTest test : tests) {
+            if (
+                    test.getPrice() == null || test.getPrice().compareTo(BigDecimal.ZERO) <= 0
+            ) {
+                throw new RuntimeException("El examen " + test.getCode() + " no tiene un precio válido.");
+            }
+        }
+    }
+
+    /**
+     * Calcula el total únicamente con precios obtenidos
+     * de PostgreSQL.
+     *
+     * El frontend nunca determina el monto definitivo.
+     */
+    private BigDecimal calculateTotalAmount(List<LaboratoryTest> tests) {
+        validateTestPrices(tests);
+
+        return tests.stream()
+                .map(LaboratoryTest::getPrice)
+                .reduce(
+                        BigDecimal.ZERO,
+                        BigDecimal::add
+                )
+                .setScale(
+                        2,
+                        RoundingMode.HALF_UP
+                );
     }
 
     /**
@@ -301,10 +289,7 @@ public class DoctorLaboratoryOrderService {
      * autenticado.
      */
     @Transactional(readOnly = true)
-    public List<LaboratoryOrderSummaryResponse>
-    getMyLaboratoryOrders(
-            String doctorUsername
-    ) {
+    public List<LaboratoryOrderSummaryResponse> getMyLaboratoryOrders(String doctorUsername) {
         User doctor =
                 validateAuthenticatedDoctor(
                         doctorUsername
@@ -324,11 +309,7 @@ public class DoctorLaboratoryOrderService {
      * el médico autenticado.
      */
     @Transactional(readOnly = true)
-    public LaboratoryOrderResponse
-    getMyLaboratoryOrder(
-            Long orderId,
-            String doctorUsername
-    ) {
+    public LaboratoryOrderResponse getMyLaboratoryOrder(Long orderId, String doctorUsername) {
         User doctor =
                 validateAuthenticatedDoctor(
                         doctorUsername
@@ -358,9 +339,7 @@ public class DoctorLaboratoryOrderService {
         );
     }
 
-    private User validateAuthenticatedDoctor(
-            String doctorUsername
-    ) {
+    private User validateAuthenticatedDoctor(String doctorUsername) {
         if (doctorUsername == null
                 || doctorUsername.isBlank()) {
 
@@ -404,30 +383,27 @@ public class DoctorLaboratoryOrderService {
         return doctor;
     }
 
-    private boolean isDoctorRole(
-            String roleName
-    ) {
+    /**
+     * Reconoce las variantes:
+     *
+     * MEDICO
+     * MÉDICO
+     * Médico
+     * Medico
+     */
+    private boolean isDoctorRole(String roleName) {
         if (roleName == null) {
             return false;
         }
 
-        String normalizedRole =
-                roleName
-                        .trim()
-                        .toUpperCase(
-                                Locale.ROOT
-                        )
-                        .replace("É", "E");
-
-        return normalizedRole.equals(
-                "MEDICO"
-        );
+        String normalizedRole = Normalizer.normalize(roleName, Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "")
+                .trim()
+                .toUpperCase(Locale.ROOT);
+        return normalizedRole.equals("MEDICO");
     }
 
-    private Appointment findDoctorAppointment(
-            Long appointmentId,
-            String doctorUsername
-    ) {
+    private Appointment findDoctorAppointment(Long appointmentId, String doctorUsername) {
         if (appointmentId == null) {
             throw new RuntimeException(
                     "Debe indicar la cita."
@@ -446,14 +422,25 @@ public class DoctorLaboratoryOrderService {
                 );
     }
 
-    private void validateAppointmentForOrder(
-            Appointment appointment
-    ) {
+    private void validateAppointmentForOrder(Appointment appointment) {
         if (!Boolean.TRUE.equals(
                 appointment.getActive()
         )) {
             throw new RuntimeException(
                     "La cita no se encuentra activa."
+            );
+        }
+
+        /**
+         * La orden solo puede generarse después de la evaluación,
+         * pero antes de cerrar completamente la atención.
+         */
+        if (
+                appointment.getStatus()
+                        == AppointmentStatus.ATENCION_FINALIZADA
+        ) {
+            throw new RuntimeException(
+                    "No es posible generar una orden de laboratorio porque la atención médica ya fue finalizada."
             );
         }
 
@@ -468,9 +455,7 @@ public class DoctorLaboratoryOrderService {
         }
     }
 
-    private void validateConsultationForOrder(
-            MedicalConsultation consultation
-    ) {
+    private void validateConsultationForOrder(MedicalConsultation consultation) {
         if (consultation.getStatus()
                 != MedicalConsultationStatus
                 .FINALIZADA) {
@@ -491,9 +476,7 @@ public class DoctorLaboratoryOrderService {
         }
     }
 
-    private void validateCreateRequest(
-            CreateLaboratoryOrderRequest request
-    ) {
+    private void validateCreateRequest(CreateLaboratoryOrderRequest request) {
         if (request == null) {
             throw new RuntimeException(
                     "Los datos de la orden son obligatorios."
@@ -535,38 +518,26 @@ public class DoctorLaboratoryOrderService {
         }
     }
 
-    private List<Long> normalizeTestIds(
-            List<Long> testIds
-    ) {
-        if (testIds.stream()
-                .anyMatch(id -> id == null)) {
-
-            throw new RuntimeException(
-                    "La lista de exámenes contiene identificadores inválidos."
-            );
+    /**
+     * Valida que los identificadores sean correctos
+     * y que ningún examen aparezca repetido.
+     * LinkedHashSet conserva el orden original.
+     */
+    private List<Long> normalizeTestIds(List<Long> testIds) {
+        if (testIds == null || testIds.isEmpty()) {
+            throw new RuntimeException("Debe seleccionar al menos un examen de laboratorio.");
         }
-
-        Set<Long> uniqueIds =
-                new HashSet<>(
-                        testIds
-                );
-
-        if (uniqueIds.size()
-                != testIds.size()) {
-
-            throw new RuntimeException(
-                    "No debe seleccionar el mismo examen más de una vez."
-            );
+        if (testIds.stream().anyMatch(id -> id == null)) {
+            throw new RuntimeException("La lista de exámenes contiene identificadores inválidos.");
         }
-
-        return List.copyOf(
-                uniqueIds
-        );
+        Set<Long> uniqueIds = new LinkedHashSet<>(testIds);
+        if (uniqueIds.size() != testIds.size()) {
+            throw new RuntimeException("No debe seleccionar el mismo examen más de una vez.");
+        }
+        return List.copyOf(uniqueIds);
     }
 
-    private List<LaboratoryTest> loadSelectedTests(
-            List<Long> testIds
-    ) {
+    private List<LaboratoryTest> loadSelectedTests(List<Long> testIds) {
         List<LaboratoryTest> tests =
                 testIds.stream()
                         .map(testId ->
@@ -593,9 +564,7 @@ public class DoctorLaboratoryOrderService {
         return tests;
     }
 
-    private String normalizeNotes(
-            String notes
-    ) {
+    private String normalizeNotes(String notes) {
         if (notes == null
                 || notes.isBlank()) {
 
@@ -627,9 +596,7 @@ public class DoctorLaboratoryOrderService {
         return "LAB-" + code;
     }
 
-    private LaboratoryTestResponse toTestResponse(
-            LaboratoryTest test
-    ) {
+    private LaboratoryTestResponse toTestResponse(LaboratoryTest test) {
         return LaboratoryTestResponse.builder()
                 .id(test.getId())
                 .code(test.getCode())
@@ -647,10 +614,7 @@ public class DoctorLaboratoryOrderService {
                 .build();
     }
 
-    private LaboratoryOrderSummaryResponse
-    toSummaryResponse(
-            LaboratoryOrder order
-    ) {
+    private LaboratoryOrderSummaryResponse toSummaryResponse(LaboratoryOrder order) {
         int totalTests =
                 order.getItems().size();
 
@@ -704,10 +668,7 @@ public class DoctorLaboratoryOrderService {
                 .build();
     }
 
-    private LaboratoryOrderResponse toOrderResponse(
-            LaboratoryOrder order,
-            String message
-    ) {
+    private LaboratoryOrderResponse toOrderResponse(LaboratoryOrder order, String message) {
         List<LaboratoryOrderItemResponse>
                 itemResponses =
                 order.getItems()
@@ -800,10 +761,7 @@ public class DoctorLaboratoryOrderService {
                 .build();
     }
 
-    private LaboratoryOrderItemResponse
-    toItemResponse(
-            LaboratoryOrderItem item
-    ) {
+    private LaboratoryOrderItemResponse toItemResponse(LaboratoryOrderItem item) {
         LaboratoryTest test =
                 item.getLaboratoryTest();
 
@@ -877,11 +835,45 @@ public class DoctorLaboratoryOrderService {
                 .build();
     }
 
-    private boolean orderAllowsResultEntry(
-            LaboratoryOrder order
-    ) {
+    private boolean orderAllowsResultEntry(LaboratoryOrder order) {
         return order.getStatus()
                 == LaboratoryOrderStatus
                 .EN_PROCESO;
+    }
+
+    /**
+     * Guarda la orden.
+     *
+     * Si existe una colisión extremadamente improbable
+     * del número de orden, genera un nuevo número y realiza
+     * un segundo intento.
+     */
+    private LaboratoryOrder saveLaboratoryOrder(LaboratoryOrder order) {
+        try {
+            return laboratoryOrderRepository
+                    .saveAndFlush(order);
+
+        } catch (DataIntegrityViolationException firstException) {
+            /*
+             * Generar una nueva referencia y reintentar
+             * una sola vez.
+             */
+            order.setOrderNumber(
+                    generateOrderNumber()
+            );
+
+            try {
+                return laboratoryOrderRepository
+                        .saveAndFlush(order);
+
+            } catch (DataIntegrityViolationException secondException) {
+                throw new RuntimeException(
+                        "No fue posible crear la orden. "
+                                + "La consulta puede tener otra "
+                                + "orden activa.",
+                        secondException
+                );
+            }
+        }
     }
 }

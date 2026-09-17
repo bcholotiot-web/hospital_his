@@ -9,6 +9,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import jakarta.validation.Valid;
+
 import java.util.List;
 
 @RestController
@@ -25,6 +27,13 @@ public class DoctorLaboratoryOrderController {
                 doctorLaboratoryOrderService;
     }
 
+    /*Debe:
+    Identificar al médico por JWT.
+    Validar que esté activo.
+    Validar rol MEDICO.
+    Devolver únicamente exámenes activos.
+    No devolver exámenes eliminados lógicamente.
+    Incluir el precio para mostrar el total informativo.*/
     @GetMapping("/tests")
     public ResponseEntity<List<LaboratoryTestResponse>>
     getActiveLaboratoryTests(
@@ -38,22 +47,33 @@ public class DoctorLaboratoryOrderController {
         );
     }
 
+    /**
+     * CU-08 FA01 / CU-09:
+     * Genera una orden de laboratorio desde una
+     * consulta médica.
+     *
+     * La identidad del médico se obtiene de la sesión JWT.
+     */
     @PostMapping("/orders")
     public ResponseEntity<LaboratoryOrderResponse>
     createLaboratoryOrder(
+            @Valid
             @RequestBody
             CreateLaboratoryOrderRequest request,
+
             Authentication authentication
     ) {
-        return ResponseEntity.ok(
+        LaboratoryOrderResponse response =
                 doctorLaboratoryOrderService
                         .createLaboratoryOrder(
                                 request,
                                 authentication.getName()
-                        )
-        );
+                        );
+
+        return ResponseEntity.ok(response);
     }
 
+    //LISTAR ORDENES CREADAS POR EL MEDICO
     @GetMapping("/orders")
     public ResponseEntity<
             List<LaboratoryOrderSummaryResponse>
@@ -69,6 +89,7 @@ public class DoctorLaboratoryOrderController {
         );
     }
 
+    //CONSULTAR UNA ORDEN POR MEDIO DEL ID
     @GetMapping("/orders/{orderId}")
     public ResponseEntity<LaboratoryOrderResponse>
     getMyLaboratoryOrder(

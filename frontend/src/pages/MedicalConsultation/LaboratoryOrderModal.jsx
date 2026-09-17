@@ -412,16 +412,17 @@ function LaboratoryOrderModal({
                         <input
                             id="laboratory-test-search"
                             type="text"
-                            maxLength="100"
-                            placeholder={
-                                "Buscar por nombre, código o descripción"
-                            }
+                            maxLength={100}
+                            placeholder="Buscar por nombre, código o descripción"
                             value={searchValue}
-                            onChange={(event) =>
+                            onChange={(event) => {
                                 setSearchValue(
                                     event.target.value
-                                )
-                            }
+                                );
+
+                                setGeneralError("");
+                            }}
+                            disabled={processing || loading}
                         />
                     </div>
 
@@ -431,17 +432,22 @@ function LaboratoryOrderModal({
                             className="doctor-lab-selection-button"
                             onClick={selectAllVisible}
                             disabled={
+                                processing ||
+                                loading ||
                                 filteredTests.length === 0
                             }
                         >
                             Seleccionar visibles
                         </button>
 
+
                         <button
                             type="button"
                             className="doctor-lab-selection-button"
                             onClick={clearSelection}
                             disabled={
+                                processing ||
+                                loading ||
                                 selectedTestIds.length === 0
                             }
                         >
@@ -494,6 +500,7 @@ function LaboratoryOrderModal({
                                                     test.id
                                                 )
                                             }
+                                            disabled={processing}
                                         />
 
                                         <div className="doctor-lab-test-info">
@@ -569,6 +576,7 @@ function LaboratoryOrderModal({
                                     event.target.checked
                                 )
                             }
+                            disabled={processing}
                         />
 
                         <div>
@@ -592,8 +600,8 @@ function LaboratoryOrderModal({
 
                         <textarea
                             id="laboratory-order-notes"
-                            rows="4"
-                            maxLength="1000"
+                            rows={4}
+                            maxLength={1000}
                             value={notes}
                             className={
                                 errors.notes
@@ -606,7 +614,9 @@ function LaboratoryOrderModal({
                                     event.target.value
                                 )
                             }
+                            disabled={processing}
                         />
+
 
                         <small>
                             {notes.length} / 1000
@@ -635,8 +645,8 @@ function LaboratoryOrderModal({
                             disabled={
                                 processing ||
                                 loading ||
-                                selectedTestIds
-                                    .length === 0
+                                selectedTestIds.length === 0 ||
+                                selectedTestIds.length > 50
                             }
                         >
                             {processing

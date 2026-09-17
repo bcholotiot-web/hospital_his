@@ -159,3 +159,123 @@
         grid-template-columns: 1fr;
     }
 }
+
+/*
+ * Dos campos en una misma fila:
+ * vencimiento y CVV.
+ */
+.payment-inline-fields {
+    display: grid;
+    grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+    gap: 16px;
+}
+
+/*
+ * Ajustar box-sizing para evitar que los campos
+ * excedan el ancho de la tarjeta.
+ */
+.payment-form-group input,
+.payment-form-group select {
+    box-sizing: border-box;
+}
+
+/*
+ * Estilo visible del campo inválido.
+ */
+.payment-form-group input.input-error,
+.payment-form-group select.input-error {
+    color: #111827;
+    background-color: #fff7f7;
+    border-color: #dc2626;
+}
+
+.payment-form-group input.input-error:focus,
+.payment-form-group select.input-error:focus {
+    border-color: #dc2626;
+    outline: none;
+    box-shadow:
+        0 0 0 3px rgba(220, 38, 38, 0.15);
+}
+
+/*
+ * Foco normal.
+ */
+.payment-form-group input:focus,
+.payment-form-group select:focus {
+    border-color: #2563eb;
+    outline: none;
+    box-shadow:
+        0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+/*
+ * Contador del titular.
+ */
+.payment-field-counter {
+    margin-top: 5px;
+    color: #6b7280;
+    font-size: 12px;
+    text-align: right;
+}
+
+/*
+ * Mensaje que muestra los últimos cuatro dígitos.
+ */
+.masked-card-help {
+    display: block;
+    margin-top: 6px;
+    color: #4b5563;
+    font-size: 12px;
+}
+
+.masked-card-help strong {
+    color: #111827;
+}
+
+/*
+ * Mensajes debajo de los campos.
+ */
+.payment-form-group .error-message {
+    margin-top: 6px;
+    color: #b91c1c;
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+/*
+ * Nota sobre datos sensibles.
+ */
+.sensitive-data-notice {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin: 4px 0 18px;
+    padding: 12px;
+    color: #1e3a8a;
+    background-color: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 7px;
+    font-size: 13px;
+    line-height: 1.45;
+}
+
+.sensitive-data-notice strong {
+    color: #1e40af;
+}
+
+/*
+ * Campos deshabilitados.
+ */
+.payment-form-group input:disabled,
+.payment-form-group select:disabled {
+    cursor: not-allowed;
+    background-color: #f3f4f6;
+    opacity: 0.75;
+}
+
+@media (max-width: 520px) {
+    .payment-inline-fields {
+        grid-template-columns: 1fr;
+    }
+}

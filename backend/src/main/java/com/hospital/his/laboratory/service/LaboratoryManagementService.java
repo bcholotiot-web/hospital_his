@@ -22,6 +22,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Locale;
 
+//Laboratirio registra y publica resultados.
+
 @Service
 public class LaboratoryManagementService {
 

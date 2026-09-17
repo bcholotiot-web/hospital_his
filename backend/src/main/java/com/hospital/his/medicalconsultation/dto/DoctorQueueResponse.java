@@ -46,5 +46,11 @@ public class DoctorQueueResponse {
     private Boolean canGeneratePrescription;
 
     private Boolean canScheduleFollowUp;
+    /**
+     * Indica si la consulta ya fue evaluada y todavía
+     * no tiene una orden activa de laboratorio.
+     */
+    private Boolean canCreateLaboratoryOrder;
+    private Boolean hasActiveLaboratoryOrder;
 
 }

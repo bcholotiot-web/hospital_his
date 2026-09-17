@@ -1,4 +1,8 @@
 import { useState } from "react";
+import {
+    Link,
+    useNavigate
+} from "react-router-dom";
 
 import MainLayout
     from "../../layouts/MainLayout";
@@ -371,15 +375,30 @@ function Cashier() {
         <MainLayout>
             <div className="cashier-page">
                 <header className="cashier-header">
-                    <h1>
-                        Cobro de Consulta en Caja
-                    </h1>
+                    <div>
+                        <h1>
+                            Panel de Caja
+                        </h1>
 
-                    <p>
-                        Busque una cita pendiente y registre
-                        el pago del paciente.
-                    </p>
+                        <p>
+                            Registre pagos de consultas médicas
+                            y órdenes de laboratorio.
+                        </p>
+                    </div>
+
+                    <div className="cashier-module-actions">
+                        <Link
+                            to="/cashier/laboratory-payments"
+                            className="btn btn-primary"
+                        >
+                            Cobro de Laboratorio
+                        </Link>
+                    </div>
                 </header>
+
+                <h2 className="cashier-module-title">
+                    Cobro de Consulta Médica
+                </h2>
 
                 <section className="cashier-search-card">
                     <div className="cashier-search-types">
