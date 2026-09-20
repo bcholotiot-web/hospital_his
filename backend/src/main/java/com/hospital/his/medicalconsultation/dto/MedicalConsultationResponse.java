@@ -75,4 +75,7 @@ public class MedicalConsultationResponse {
      * Indica si ya existe una orden activa.
      */
     private Boolean hasActiveLaboratoryOrder;
+
+    private Boolean canCreatePrescription;
+    private Boolean hasActivePrescription;
 }

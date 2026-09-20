@@ -69,10 +69,12 @@ Contraseña: LaboratorioPrueba123
 //Prueba flujo hasta CU-06
 
 cajero01 -> CajeroPrueba123
-recep001 -> RecepPrueba123
+recep001 ->  
 enfer01 -> EnfermeriaPrueba123
 medped02 -> MedicoPrueba123
 lab01 -> LaboratorioPrueba123
 
 //se crea al usuario 
 pacienteP -> PacientePrueba123  ID12
+
+farma001-> FarmaciaPrueba123

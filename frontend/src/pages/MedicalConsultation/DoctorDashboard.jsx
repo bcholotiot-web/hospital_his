@@ -13,6 +13,9 @@ import MedicalConsultationModal
 import LaboratoryOrderModal
     from "./LaboratoryOrderModal";
 
+import PrescriptionModal
+    from "./PrescriptionModal";
+
 import {
     finishPatientCare,
     getDoctorQueue,
@@ -51,6 +54,22 @@ function DoctorDashboard() {
     const [
         laboratoryOrderResult,
         setLaboratoryOrderResult
+    ] = useState(null);
+
+    /*
+ * Cita seleccionada para generar una receta.
+ */
+    const [
+        prescriptionAppointment,
+        setPrescriptionAppointment
+    ] = useState(null);
+
+    /*
+     * Receta creada recientemente.
+     */
+    const [
+        prescriptionResult,
+        setPrescriptionResult
     ] = useState(null);
 
     const loadQueue = useCallback(
@@ -343,21 +362,62 @@ function DoctorDashboard() {
         );
     };
 
-    const handleLaboratoryOrderCreated =
-        async (order) => {
-            setLaboratoryAppointment(null);
-            setLaboratoryOrderResult(order);
+    /**
+ * Abre el formulario de receta para una
+ * consulta finalizada.
+ */
+    const handleOpenPrescription = (
+        appointment
+    ) => {
+        setErrorMessage("");
+        setSuccessMessage("");
+        setPrescriptionResult(null);
+
+        setPrescriptionAppointment(
+            appointment
+        );
+    };
+
+
+    const handleLaboratoryOrderCreated = async (order) => {
+        setLaboratoryAppointment(null);
+        setLaboratoryOrderResult(order);
+
+        setSuccessMessage(
+            `Orden ${order.orderNumber} creada correctamente. Total: Q${Number(
+                order.totalAmount
+            ).toFixed(2)}. Estado: Pendiente de pago.`
+        );
+
+        setErrorMessage("");
+
+        await loadQueue(false);
+    };
+
+    /**
+* Procesa la respuesta del backend después
+* de crear una receta.
+*
+* También recarga la cola para que desaparezca
+* el botón de crear otra receta activa.
+*/
+    const handlePrescriptionCreated =
+        async (prescription) => {
+            setPrescriptionAppointment(null);
+            setPrescriptionResult(
+                prescription
+            );
 
             setSuccessMessage(
-                `Orden ${order.orderNumber} creada correctamente. Total: Q${Number(
-                    order.totalAmount
-                ).toFixed(2)}. Estado: Pendiente de pago.`
+                `Receta ${prescription.prescriptionNumber} ` +
+                `creada correctamente. Vigencia máxima: 7 días.`
             );
 
             setErrorMessage("");
 
             await loadQueue(false);
         };
+
 
     return (
         <MainLayout>
@@ -454,6 +514,53 @@ function DoctorDashboard() {
                     </div>
                 )}
 
+                {prescriptionResult && (
+                    <div className="doctor-prescription-created-card">
+                        <div>
+                            <h3>
+                                Receta médica creada
+                            </h3>
+
+                            <p>
+                                <strong>Receta:</strong>{" "}
+                                {
+                                    prescriptionResult
+                                        .prescriptionNumber
+                                }
+                            </p>
+
+                            <p>
+                                <strong>Medicamentos:</strong>{" "}
+                                {
+                                    prescriptionResult
+                                        .totalMedications
+                                }
+                            </p>
+
+                            <p>
+                                <strong>Estado:</strong>{" "}
+                                {formatStatus(
+                                    prescriptionResult.status
+                                )}
+                            </p>
+
+                            <p>
+                                <strong>Vigencia:</strong>{" "}
+                                7 días
+                            </p>
+                        </div>
+
+                        <button
+                            type="button"
+                            className="btn btn-secondary"
+                            onClick={() =>
+                                setPrescriptionResult(null)
+                            }
+                        >
+                            Cerrar
+                        </button>
+                    </div>
+                )}
 
                 {loading ? (
                     <div className="doctor-loading">
@@ -528,11 +635,11 @@ function DoctorDashboard() {
                             onLabOrder={
                                 handleOpenLaboratoryOrder
                             }
-                            onPrescription={(appointment) => {
-                                setErrorMessage(
-                                    `La generación de recetas para la cita #${appointment.appointmentId} todavía no está disponible.`
-                                );
-                            }}
+                            onPrescription={
+                                handleOpenPrescription
+                            }
+
+
 
                             onFollowUp={(appointment) => {
                                 setErrorMessage(
@@ -574,6 +681,23 @@ function DoctorDashboard() {
                         }
                     />
                 )}
+
+                {prescriptionAppointment && (
+                    <PrescriptionModal
+                        appointment={
+                            prescriptionAppointment
+                        }
+                        onClose={() =>
+                            setPrescriptionAppointment(
+                                null
+                            )
+                        }
+                        onCreated={
+                            handlePrescriptionCreated
+                        }
+                    />
+                )}
+
             </div>
         </MainLayout>
     );
@@ -772,10 +896,11 @@ function DoctorSection({
                                         )}
 
 
-                                        {appointment.canGeneratePrescription && (
+                                        {appointment.canCreatePrescription && (
                                             <button
                                                 type="button"
                                                 className="doctor-secondary-action"
+                                                disabled={processing}
                                                 onClick={() =>
                                                     onPrescription(
                                                         appointment

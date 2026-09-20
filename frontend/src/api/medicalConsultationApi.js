@@ -117,3 +117,41 @@ export const getDoctorLaboratoryOrder = (
         getAuthHeaders()
     );
 };
+
+/**
+ * Obtiene el catálogo activo de medicamentos
+ * para crear una receta.
+ */
+export const getDoctorMedicationCatalog = () => {
+    return axios.get(
+        `${API_URL}/medications`,
+        getAuthHeaders()
+    );
+};
+
+/**
+ * Crea una receta desde una consulta finalizada.
+ */
+
+export const createDoctorPrescription = (
+    data
+) => {
+    return axios.post(
+        `${API_URL}/prescriptions`,
+        data,
+        getAuthHeaders()
+    );
+};
+
+
+/**
+ * Obtiene las recetas creadas por el médico.
+ */
+
+export const getDoctorPrescriptions = () => {
+    return axios.get(
+        `${API_URL}/prescriptions`,
+        getAuthHeaders()
+    );
+};
+

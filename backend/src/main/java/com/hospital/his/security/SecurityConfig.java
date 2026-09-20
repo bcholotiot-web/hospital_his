@@ -71,6 +71,13 @@ public class SecurityConfig {
                         .requestMatchers("/api/laboratory/**")
                         .hasRole("LABORATORIO")
 
+                        /*CU-11:
+                         Solo un usuario con rol FARMACIA puede consultar
+                         el inventario y realizar despachos.
+                         */
+                        .requestMatchers("/api/pharmacy/**")
+                        .hasRole("FARMACIA")
+
                         .anyRequest()
                         .authenticated())
                 .addFilterBefore(

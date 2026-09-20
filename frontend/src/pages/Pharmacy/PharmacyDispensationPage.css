@@ -1,0 +1,389 @@
+.pharmacy-dispensation-page {
+    max-width: 1180px;
+    margin: 0 auto;
+}
+
+.pharmacy-dispensation-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+}
+
+.pharmacy-dispensation-header h1 {
+    margin: 0 0 7px;
+}
+
+.pharmacy-dispensation-header p {
+    margin: 0;
+    color: #6b7280;
+}
+
+.pharmacy-back-link {
+    height: fit-content;
+    padding: 10px 14px;
+    color: #047857;
+    text-decoration: none;
+    background-color: #ecfdf5;
+    border: 1px solid #6ee7b7;
+    border-radius: 7px;
+    font-weight: 700;
+}
+
+.pharmacy-search-card,
+.pharmacy-results-card,
+.pharmacy-prescription-card,
+.pharmacy-medications-card,
+.pharmacy-payment-card {
+    margin-top: 22px;
+    padding: 22px;
+    background-color: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    box-shadow:
+        0 7px 16px rgba(0, 0, 0, 0.06);
+}
+
+.pharmacy-search-types {
+    display: flex;
+    gap: 9px;
+    margin-bottom: 14px;
+}
+
+.pharmacy-search-types button {
+    padding: 9px 13px;
+    color: #374151;
+    background-color: #e5e7eb;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.pharmacy-search-types button.active {
+    color: #ffffff;
+    background-color: #047857;
+    border-color: #047857;
+}
+
+.pharmacy-search-form {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 10px;
+    align-items: start;
+}
+
+.pharmacy-search-form input,
+.pharmacy-form-group input,
+.pharmacy-form-group select,
+.pharmacy-form-group textarea {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 10px 12px;
+    border: 1px solid #9ca3af;
+    border-radius: 6px;
+    font-family: inherit;
+}
+
+.pharmacy-page-message {
+    margin-top: 18px;
+    padding: 13px;
+    border-radius: 7px;
+}
+
+.pharmacy-page-message.error,
+.pharmacy-field-error {
+    color: #b91c1c;
+    background-color: #fee2e2;
+}
+
+.pharmacy-page-message.error {
+    border: 1px solid #fca5a5;
+}
+
+.pharmacy-field-error {
+    margin-top: 6px;
+    padding: 7px;
+    border-radius: 5px;
+    font-size: 13px;
+}
+
+.pharmacy-prescription-result {
+    display: flex;
+    justify-content: space-between;
+    gap: 18px;
+    padding: 14px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+}
+
+.pharmacy-prescription-result>div {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.pharmacy-prescription-result span,
+.pharmacy-prescription-result small {
+    color: #6b7280;
+}
+
+.pharmacy-prescription-summary {
+    display: grid;
+    grid-template-columns:
+        repeat(3, minmax(180px, 1fr));
+    gap: 10px;
+}
+
+.pharmacy-prescription-summary>div {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 12px;
+    background-color: #ecfdf5;
+    border: 1px solid #a7f3d0;
+    border-radius: 7px;
+}
+
+.pharmacy-prescription-summary span {
+    color: #6b7280;
+    font-size: 12px;
+}
+
+.pharmacy-detail-message {
+    margin-bottom: 0;
+    padding: 11px;
+    color: #065f46;
+    background-color: #d1fae5;
+    border-radius: 6px;
+}
+
+.pharmacy-medication {
+    margin-bottom: 13px;
+    padding: 16px;
+    border: 1px solid #d1d5db;
+    border-radius: 9px;
+}
+
+.pharmacy-medication.selected {
+    background-color: #f0fdf4;
+    border-color: #10b981;
+}
+
+.pharmacy-medication-select {
+    display: flex;
+    gap: 10px;
+}
+
+.pharmacy-medication-select>div {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.pharmacy-medication-select span {
+    color: #6b7280;
+    font-size: 13px;
+}
+
+.pharmacy-medication-data {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.pharmacy-medication-data span {
+    padding: 6px 9px;
+    color: #374151;
+    background-color: #f3f4f6;
+    border-radius: 5px;
+}
+
+.pharmacy-medication-data strong {
+    margin-left: 5px;
+}
+
+.pharmacy-usage-instructions,
+.pharmacy-special-instructions {
+    color: #4b5563;
+    font-size: 14px;
+}
+
+.pharmacy-special-instructions {
+    padding: 8px;
+    background-color: #fef3c7;
+    border-radius: 6px;
+}
+
+.pharmacy-medication-fields {
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid #d1d5db;
+}
+
+.pharmacy-form-group {
+    margin-bottom: 15px;
+}
+
+.pharmacy-form-group label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 600;
+}
+
+.pharmacy-form-group.controlled {
+    padding: 12px;
+    color: #7c2d12;
+    background-color: #ffedd5;
+    border: 1px solid #fdba74;
+    border-radius: 7px;
+}
+
+.pharmacy-substitution-check {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 15px;
+}
+
+.pharmacy-medication-message {
+    margin-top: 10px;
+    color: #4b5563;
+    font-size: 13px;
+}
+
+.pharmacy-total,
+.pharmacy-change {
+    display: flex;
+    justify-content: space-between;
+    gap: 15px;
+    margin-bottom: 17px;
+    padding: 14px;
+    border-radius: 7px;
+}
+
+.pharmacy-total {
+    background-color: #d1fae5;
+    border: 1px solid #6ee7b7;
+}
+
+.pharmacy-total strong {
+    color: #065f46;
+    font-size: 23px;
+}
+
+.pharmacy-change {
+    background-color: #eff6ff;
+    border: 1px solid #93c5fd;
+}
+
+.pharmacy-card-notice {
+    margin-bottom: 15px;
+    padding: 11px;
+    color: #92400e;
+    background-color: #fef3c7;
+    border-radius: 6px;
+}
+
+.pharmacy-confirm-button {
+    width: 100%;
+    padding: 12px;
+    color: #ffffff;
+    background-color: #047857;
+    border: none;
+    border-radius: 7px;
+    cursor: pointer;
+    font-weight: 700;
+}
+
+.pharmacy-confirm-button:disabled {
+    background-color: #9ca3af;
+    cursor: not-allowed;
+}
+
+@media (max-width: 760px) {
+
+    .pharmacy-dispensation-header,
+    .pharmacy-prescription-result {
+        flex-direction: column;
+    }
+
+    .pharmacy-search-form,
+    .pharmacy-prescription-summary {
+        grid-template-columns: 1fr;
+    }
+
+    .pharmacy-back-link {
+        text-align: center;
+    }
+}
+
+.pharmacy-page-message.success {
+    color: #065f46;
+    background-color: #d1fae5;
+    border: 1px solid #6ee7b7;
+}
+
+.pharmacy-decline-section {
+    margin-top: 22px;
+    padding-top: 18px;
+    border-top: 1px solid #d1d5db;
+}
+
+.pharmacy-decline-button {
+    width: 100%;
+    padding: 11px;
+    color: #92400e;
+    background-color: #fffbeb;
+    border: 1px solid #f59e0b;
+    border-radius: 7px;
+    cursor: pointer;
+    font-weight: 700;
+}
+
+.pharmacy-decline-form {
+    padding: 16px;
+    background-color: #fffbeb;
+    border: 1px solid #fcd34d;
+    border-radius: 8px;
+}
+
+.pharmacy-decline-form h3 {
+    margin-top: 0;
+    color: #78350f;
+}
+
+.pharmacy-decline-form p {
+    color: #92400e;
+}
+
+.pharmacy-decline-form small {
+    display: block;
+    margin-top: 4px;
+    color: #6b7280;
+    text-align: right;
+}
+
+.pharmacy-decline-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.pharmacy-decline-confirm {
+    padding: 10px 14px;
+    color: #ffffff;
+    background-color: #b45309;
+    border: 1px solid #b45309;
+    border-radius: 7px;
+    cursor: pointer;
+    font-weight: 700;
+}
+
+@media (max-width: 650px) {
+    .pharmacy-decline-actions {
+        flex-direction: column-reverse;
+    }
+
+    .pharmacy-decline-actions button {
+        width: 100%;
+    }
+}

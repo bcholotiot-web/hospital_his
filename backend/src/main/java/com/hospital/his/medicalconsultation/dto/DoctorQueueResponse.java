@@ -53,4 +53,15 @@ public class DoctorQueueResponse {
     private Boolean canCreateLaboratoryOrder;
     private Boolean hasActiveLaboratoryOrder;
 
+    /**
+     * Indica si el médico puede generar una receta
+     * para la consulta finalizada.
+     */
+    private Boolean canCreatePrescription;
+
+    /**
+     * Indica si la consulta ya tiene una receta activa.
+     */
+    private Boolean hasActivePrescription;
+
 }

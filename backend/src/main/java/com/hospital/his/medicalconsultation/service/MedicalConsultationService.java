@@ -16,6 +16,8 @@ import com.hospital.his.medicalconsultation.entity.MedicalConsultation;
 import com.hospital.his.medicalconsultation.entity.MedicalConsultationStatus;
 import com.hospital.his.medicalconsultation.repository.Icd10CodeRepository;
 import com.hospital.his.medicalconsultation.repository.MedicalConsultationRepository;
+import com.hospital.his.prescriptions.entity.Prescription;
+import com.hospital.his.prescriptions.repository.PrescriptionRepository;
 import com.hospital.his.users.entity.User;
 import com.hospital.his.users.repository.UserRepository;
 import com.hospital.his.vitalsigns.dto.VitalSignsResponse;
@@ -63,32 +65,26 @@ public class MedicalConsultationService {
     private final LaboratoryOrderRepository
             laboratoryOrderRepository;
 
+    private final PrescriptionRepository prescriptionRepository;
+
     public MedicalConsultationService(
             AppointmentRepository appointmentRepository,
             MedicalConsultationRepository medicalConsultationRepository,
             VitalSignsRepository vitalSignsRepository,
             Icd10CodeRepository icd10CodeRepository,
             UserRepository userRepository,
-            AuditService auditService, LaboratoryOrderRepository laboratoryOrderRepository
+            AuditService auditService,
+            LaboratoryOrderRepository laboratoryOrderRepository,
+            PrescriptionRepository prescriptionRepository
     ) {
-        this.appointmentRepository =
-                appointmentRepository;
-
-        this.medicalConsultationRepository =
-                medicalConsultationRepository;
-
-        this.vitalSignsRepository =
-                vitalSignsRepository;
-
-        this.icd10CodeRepository =
-                icd10CodeRepository;
-
-        this.userRepository =
-                userRepository;
-
-        this.auditService =
-                auditService;
+        this.appointmentRepository = appointmentRepository;
+        this.medicalConsultationRepository = medicalConsultationRepository;
+        this.vitalSignsRepository = vitalSignsRepository;
+        this.icd10CodeRepository = icd10CodeRepository;
+        this.userRepository = userRepository;
+        this.auditService = auditService;
         this.laboratoryOrderRepository = laboratoryOrderRepository;
+        this.prescriptionRepository = prescriptionRepository;
     }
 
     /*
@@ -953,6 +949,13 @@ public class MedicalConsultationService {
                         consultation.getId()
                 );
 
+        boolean hasActivePrescription =
+                consultation != null
+                        && prescriptionRepository
+                        .existsByMedicalConsultation_IdAndActiveTrue(
+                                consultation.getId()
+                        );
+
         return DoctorQueueResponse.builder()
                 .appointmentId(
                         appointment.getId()
@@ -1049,6 +1052,17 @@ public class MedicalConsultationService {
                         appointment.getStatus()
                                 == AppointmentStatus.SIGNOS_REGISTRADOS
                 )
+                .canCreatePrescription(
+                        consultation != null
+                                && consultation.getStatus()
+                                == MedicalConsultationStatus.FINALIZADA
+                                && appointment.getStatus()
+                                == AppointmentStatus.CONSULTA_EVALUADA
+                                && !hasActivePrescription
+                )
+                .hasActivePrescription(
+                        hasActivePrescription
+                )
                 .build();
     }
 
@@ -1105,119 +1119,48 @@ public class MedicalConsultationService {
                         == AppointmentStatus.CONSULTA_EVALUADA
                         && !hasActiveLaboratoryOrder;
 
+        boolean hasActivePrescription =
+                prescriptionRepository
+                        .existsByMedicalConsultation_IdAndActiveTrue(
+                                consultation.getId()
+                        );
+
+        boolean canCreatePrescription =
+                consultation.getStatus()
+                        == MedicalConsultationStatus.FINALIZADA
+                        && appointment.getStatus()
+                        == AppointmentStatus.CONSULTA_EVALUADA
+                        && !hasActivePrescription;
+
         return MedicalConsultationResponse.builder()
-                .consultationId(
-                        consultation.getId()
-                )
-                .appointmentId(
-                        appointment.getId()
-                )
-                .patientName(
-                        appointment
-                                .getPatient()
-                                .getFullName()
-                )
-                .patientDpi(
-                        appointment
-                                .getPatient()
-                                .getDpi()
-                )
-                .doctorName(
-                        consultation
-                                .getDoctor()
-                                .getFullName()
-                )
-                .specialty(
-                        appointment
-                                .getSpecialty()
-                                .getName()
-                )
-                .branch(
-                        appointment
-                                .getBranch()
-                                .getName()
-                )
-                .priority(
-                        appointment
-                                .getPriority()
-                                .name()
-                )
-                .appointmentStatus(
-                        appointment
-                                .getStatus()
-                                .name()
-                )
-                .consultationStatus(
-                        consultation
-                                .getStatus()
-                                .name()
-                )
-                .appointmentDateTime(
-                        appointment
-                                .getAppointmentDateTime()
-                                .toString()
-                )
-                .visitReason(
-                        consultation.getVisitReason()
-                )
-                .clinicalFindings(
-                        consultation
-                                .getClinicalFindings()
-                )
-                .icd10Code(
-                        consultation.getIcd10Code()
-                )
-                .icd10Description(
-                        consultation
-                                .getIcd10Description()
-                )
-                .diagnosis(
-                        consultation.getDiagnosis()
-                )
-                .treatmentPlan(
-                        consultation
-                                .getTreatmentPlan()
-                )
-                .additionalNotes(
-                        consultation
-                                .getAdditionalNotes()
-                )
-                .startedAt(
-                        consultation
-                                .getStartedAt()
-                                .toString()
-                )
-                .updatedAt(
-                        consultation
-                                .getUpdatedAt()
-                                .toString()
-                )
-                .finishedAt(
-                        consultation.getFinishedAt() != null
-                                ? consultation
-                                .getFinishedAt()
-                                .toString()
-                                : null
-                )
-                .careClosedAt(
-                        consultation.getCareClosedAt() != null
-                                ? consultation
-                                .getCareClosedAt()
-                                .toString()
-                                : null
-                )
-                .canCreateLaboratoryOrder(
-                        canCreateLaboratoryOrder
-                )
-                .hasActiveLaboratoryOrder(
-                        hasActiveLaboratoryOrder
-                )
-                .vitalSigns(
-                        toVitalSignsResponse(
-                                vitalSigns
-                        )
-                )
+                .consultationId(consultation.getId())
+                .appointmentId(appointment.getId())
+                .patientName(appointment.getPatient().getFullName())
+                .patientDpi(appointment.getPatient().getDpi())
+                .doctorName(consultation.getDoctor().getFullName())
+                .specialty(appointment.getSpecialty().getName())
+                .branch(appointment.getBranch().getName())
+                .priority(appointment.getPriority().name())
+                .appointmentStatus(appointment.getStatus().name())
+                .consultationStatus(consultation.getStatus().name())
+                .appointmentDateTime(appointment.getAppointmentDateTime().toString())
+                .visitReason(consultation.getVisitReason())
+                .clinicalFindings(consultation.getClinicalFindings())
+                .icd10Code(consultation.getIcd10Code())
+                .icd10Description(consultation.getIcd10Description())
+                .diagnosis(consultation.getDiagnosis())
+                .treatmentPlan(consultation.getTreatmentPlan())
+                .additionalNotes(consultation.getAdditionalNotes())
+                .startedAt(consultation.getStartedAt().toString())
+                .updatedAt(consultation.getUpdatedAt().toString())
+                .finishedAt(consultation.getFinishedAt() != null ? consultation.getFinishedAt().toString() : null)
+                .careClosedAt(consultation.getCareClosedAt() != null ? consultation.getCareClosedAt().toString() : null)
+                .canCreateLaboratoryOrder(canCreateLaboratoryOrder)
+                .hasActiveLaboratoryOrder(hasActiveLaboratoryOrder)
+                .vitalSigns(toVitalSignsResponse(vitalSigns))
                 .message(message)
+                .canCreatePrescription(canCreatePrescription)
+                .hasActivePrescription(hasActivePrescription)
                 .build();
     }
 

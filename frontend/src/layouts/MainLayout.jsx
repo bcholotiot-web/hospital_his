@@ -5,36 +5,32 @@ function MainLayout({ children }) {
     const navigate = useNavigate();
 
     const role = localStorage.getItem("role");
+    const normalizedRole = normalizeRole(role);
 
     const isAdmin =
-        role === "ADMIN" ||
-        role === "Administrador";
+        normalizedRole === "ADMIN" ||
+        normalizedRole === "ADMINISTRADOR";
 
     const isPatient =
-        role === "PACIENTE" ||
-        role === "Paciente";
+        normalizedRole === "PACIENTE";
 
     const isReceptionist =
-        role === "RECEPCIONISTA" ||
-        role === "Recepcionista";
+        normalizedRole === "RECEPCIONISTA";
 
     const isCashier =
-        role === "CAJERO" ||
-        role === "Cajero";
+        normalizedRole === "CAJERO";
 
     const isNursing =
-        role === "ENFERMERIA" ||
-        role === "Enfermeria" ||
-        role === "Enfermería";
+        normalizedRole === "ENFERMERIA";
 
     const isDoctor =
-        role === "MEDICO" ||
-        role === "Medico" ||
-        role === "Médico";
+        normalizedRole === "MEDICO";
 
     const isLaboratory =
-        role === "LABORATORIO" ||
-        role === "Laboratorio";
+        normalizedRole === "LABORATORIO";
+
+    const isPharmacy =
+        normalizedRole === "FARMACIA";
 
     const handleLogout = () => {
         localStorage.removeItem("token");
@@ -149,6 +145,24 @@ function MainLayout({ children }) {
                             Gestión de Laboratorio
                         </Link>
                     )}
+
+                    {isPharmacy && (
+                        <>
+                            <Link
+                                to="/pharmacy"
+                                className="main-sidebar-link"
+                            >
+                                Panel de Farmacia
+                            </Link>
+
+                            <Link
+                                to="/pharmacy/dispensations"
+                                className="main-sidebar-link"
+                            >
+                                Despacho de Medicamentos
+                            </Link>
+                        </>
+                    )}
                 </nav>
 
                 <div className="main-sidebar-footer">
@@ -167,6 +181,25 @@ function MainLayout({ children }) {
             </main>
         </div>
     );
+}
+
+/**
+ * Normaliza el nombre del rol almacenado
+ * después del login.
+ */
+function normalizeRole(value) {
+    if (!value) {
+        return "";
+    }
+
+    return String(value)
+        .normalize("NFD")
+        .replace(
+            /[\u0300-\u036f]/g,
+            ""
+        )
+        .trim()
+        .toUpperCase();
 }
 
 export default MainLayout;

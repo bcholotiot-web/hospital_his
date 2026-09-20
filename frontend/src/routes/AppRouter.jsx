@@ -17,6 +17,8 @@ import NursingDashboard from "../pages/Nursing/NursingDashboard";
 import DoctorDashboard from "../pages/MedicalConsultation/DoctorDashboard";
 import LaboratoryOrders from "../pages/Laboratory/LaboratoryOrders";
 import LaboratoryPaymentPage from "../pages/LaboratoryPayment/LaboratoryPaymentPage";
+import PharmacyDashboard from "../pages/Pharmacy/PharmacyDashboard";
+import PharmacyDispensationPage from "../pages/Pharmacy/PharmacyDispensationPage";
 
 function AppRouter() {
 
@@ -40,6 +42,10 @@ function AppRouter() {
                 <Route path="/doctor" element={<PrivateRoute allowedRoles={["MEDICO", "Medico", "Médico"]}><DoctorDashboard /></PrivateRoute>} />
                 <Route path="/laboratory" element={<PrivateRoute allowedRoles={["LABORATORIO", "Laboratorio"]}><LaboratoryOrders /></PrivateRoute>} />
                 <Route path="/cashier/laboratory-payments" element={<PrivateRoute allowedRoles={["CAJERO", "Cajero"]}><LaboratoryPaymentPage /></PrivateRoute>} />
+                <Route path="/pharmacy" element={<PrivateRoute allowedRoles={["FARMACIA", "Farmacia"]}><PharmacyDashboard /></PrivateRoute>} />
+                <Route path="/pharmacy/dispensations" element={<PrivateRoute allowedRoles={["FARMACIA", "Farmacia"]}><PharmacyDispensationPage /></PrivateRoute>} />
+
+
             </Routes>
         </BrowserRouter>
     );
