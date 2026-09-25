@@ -4,6 +4,10 @@ import {
     useState
 } from "react";
 
+import {
+    useNavigate
+} from "react-router-dom";
+
 import MainLayout
     from "../../layouts/MainLayout";
 
@@ -26,6 +30,7 @@ import {
 import "./DoctorDashboard.css";
 
 function DoctorDashboard() {
+    const navigate = useNavigate();
     const [queue, setQueue] =
         useState([]);
 
@@ -418,6 +423,24 @@ function DoctorDashboard() {
             await loadQueue(false);
         };
 
+    /**
+* Abre el wizard de seguimiento utilizando
+* la consulta médica seleccionada.
+*/
+    const handleScheduleFollowUp = (appointment) => {
+        if (!appointment?.consultationId) {
+            setErrorMessage(
+                "No se pudo identificar la consulta médica."
+            );
+
+            return;
+        }
+
+        navigate(
+            `/doctor/follow-up/${appointment.consultationId}`
+        );
+    };
+
 
     return (
         <MainLayout>
@@ -641,11 +664,9 @@ function DoctorDashboard() {
 
 
 
-                            onFollowUp={(appointment) => {
-                                setErrorMessage(
-                                    `El seguimiento para la cita #${appointment.appointmentId} se implementará en CU-11.`
-                                );
-                            }}
+                            onFollowUp={
+                                handleScheduleFollowUp
+                            }
                         />
                     </div>
                 )}
@@ -911,14 +932,13 @@ function DoctorSection({
                                             </button>
                                         )}
 
-                                        {appointment.canScheduleFollowUp && (
+                                        {appointment.consultationId && (
                                             <button
                                                 type="button"
                                                 className="doctor-secondary-action"
+                                                disabled={processing}
                                                 onClick={() =>
-                                                    onFollowUp(
-                                                        appointment
-                                                    )
+                                                    onFollowUp(appointment)
                                                 }
                                             >
                                                 Agendar Seguimiento

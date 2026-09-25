@@ -1,6 +1,9 @@
 package com.hospital.his.medicalconsultation.dto;
 
 import com.hospital.his.vitalsigns.dto.VitalSignsResponse;
+import com.hospital.his.appointments.dto.AppointmentDocumentResponse;
+
+import java.util.List;
 import lombok.*;
 
 @Getter
@@ -78,4 +81,24 @@ public class MedicalConsultationResponse {
 
     private Boolean canCreatePrescription;
     private Boolean hasActivePrescription;
+
+    /**
+     * Indica si el paciente adjuntó al menos
+     * un documento en la cita.
+     */
+    private Boolean hasAppointmentDocuments;
+
+    /**
+     * Cantidad de documentos activos asociados.
+     */
+    private Long appointmentDocumentCount;
+
+    /**
+     * Metadatos de documentos disponibles para
+     * que el médico pueda visualizarlos.
+     *
+     * El contenido binario no se incluye aquí.
+     */
+    private List<AppointmentDocumentResponse>
+            appointmentDocuments;
 }

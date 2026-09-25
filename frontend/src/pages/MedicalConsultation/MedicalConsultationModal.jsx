@@ -4,6 +4,7 @@ import {
 } from "react";
 
 import {
+    downloadDoctorAppointmentDocument,
     getMedicalConsultation,
     saveMedicalConsultation,
     searchIcd10Codes
@@ -85,6 +86,15 @@ function MedicalConsultationModal({
         consultationMessage,
         setConsultationMessage
     ] = useState("");
+
+    /*
+ * Identifica el documento que se encuentra
+ * descargándose o abriéndose.
+ */
+    const [
+        openingDocumentId,
+        setOpeningDocumentId
+    ] = useState(null);
 
     useEffect(() => {
         loadConsultation();
@@ -579,6 +589,87 @@ function MedicalConsultationModal({
             "CONSULTA_EVALUADA"
     };
 
+    /**
+ * Descarga el PDF mediante Axios y abre una URL
+ * temporal del navegador.
+ *
+ * El JWT se envía en la solicitud.
+ */
+    const handleOpenAppointmentDocument =
+        async (document) => {
+            if (
+                openingDocumentId !== null ||
+                !consultation?.appointmentId ||
+                !document?.documentId
+            ) {
+                return;
+            }
+
+            try {
+                setOpeningDocumentId(
+                    document.documentId
+                );
+
+                setGeneralError("");
+
+                const response =
+                    await downloadDoctorAppointmentDocument(
+                        consultation.appointmentId,
+                        document.documentId
+                    );
+
+                const blob =
+                    new Blob(
+                        [response.data],
+                        {
+                            type:
+                                document.contentType ||
+                                "application/pdf"
+                        }
+                    );
+
+                const fileUrl =
+                    URL.createObjectURL(blob);
+
+                /*
+                 * Abrir en otra pestaña.
+                 */
+                const newWindow =
+                    window.open(
+                        fileUrl,
+                        "_blank"
+                    );
+
+                if (!newWindow) {
+                    throw new Error(
+                        "El navegador bloqueó la ventana del documento."
+                    );
+                }
+
+                newWindow.opener = null;
+
+                /*
+                 * La URL se libera después de un minuto,
+                 * dando tiempo a que el visor cargue el PDF.
+                 */
+                window.setTimeout(() => {
+                    URL.revokeObjectURL(
+                        fileUrl
+                    );
+                }, 60000);
+
+            } catch (error) {
+                setGeneralError(
+                    getBackendMessage(
+                        error,
+                        "No fue posible abrir el documento."
+                    )
+                );
+            } finally {
+                setOpeningDocumentId(null);
+            }
+        };
+
     return (
         <>
             <div
@@ -657,8 +748,8 @@ function MedicalConsultationModal({
 
                                     <strong
                                         className={
-                                            consultation.priority
-                                                === "EMERGENCIA"
+                                            consultation.priority ===
+                                                "EMERGENCIA"
                                                 ? "medical-emergency"
                                                 : ""
                                         }
@@ -676,6 +767,99 @@ function MedicalConsultationModal({
                                     consultation.vitalSigns
                                 }
                             />
+
+                            {/*
+         * Muestra los documentos que el paciente
+         * cargó durante el agendamiento.
+         *
+         * Se coloca después de los signos vitales
+         * y antes del formulario clínico para que
+         * el médico pueda revisar la información
+         * antes de registrar el diagnóstico.
+         */}
+                            <section className="medical-documents-section">
+                                <div className="medical-documents-header">
+                                    <div>
+                                        <h3>
+                                            Documentos del paciente
+                                        </h3>
+
+                                        <p>
+                                            Archivos cargados durante el
+                                            agendamiento de la cita.
+                                        </p>
+                                    </div>
+
+                                    <span>
+                                        {
+                                            consultation
+                                                .appointmentDocumentCount ||
+                                            0
+                                        }
+                                    </span>
+                                </div>
+
+                                {!consultation
+                                    .hasAppointmentDocuments ? (
+                                    <div className="medical-documents-empty">
+                                        El paciente no adjuntó documentos
+                                        para esta cita.
+                                    </div>
+                                ) : (
+                                    <div className="medical-documents-list">
+                                        {(consultation
+                                            .appointmentDocuments || [])
+                                            .map(document => (
+                                                <article
+                                                    key={
+                                                        document.documentId
+                                                    }
+                                                    className="medical-document-item"
+                                                >
+                                                    <div>
+                                                        <strong>
+                                                            {
+                                                                document
+                                                                    .originalName
+                                                            }
+                                                        </strong>
+
+                                                        <span>
+                                                            {
+                                                                document
+                                                                    .formattedSize
+                                                            }
+                                                            {" · "}
+                                                            Cargado:{" "}
+                                                            {formatDateTime(
+                                                                document
+                                                                    .uploadedAt
+                                                            )}
+                                                        </span>
+                                                    </div>
+
+                                                    <button
+                                                        type="button"
+                                                        onClick={() =>
+                                                            handleOpenAppointmentDocument(
+                                                                document
+                                                            )
+                                                        }
+                                                        disabled={
+                                                            openingDocumentId !==
+                                                            null
+                                                        }
+                                                    >
+                                                        {openingDocumentId ===
+                                                            document.documentId
+                                                            ? "Abriendo..."
+                                                            : "Ver documento"}
+                                                    </button>
+                                                </article>
+                                            ))}
+                                    </div>
+                                )}
+                            </section>
                         </>
                     )}
 
@@ -1289,6 +1473,33 @@ function formatAmount(value) {
     return `Q${Number(
         value || 0
     ).toFixed(2)}`;
+}
+
+/**
+ * Presenta fechas en formato local.
+ */
+function formatDateTime(value) {
+    if (!value) {
+        return "No disponible";
+    }
+
+    const date =
+        new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+        return value;
+    }
+
+    return date.toLocaleString(
+        "es-GT",
+        {
+            year: "numeric",
+            month: "short",
+            day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit"
+        }
+    );
 }
 
 /**

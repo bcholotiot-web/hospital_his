@@ -1,5 +1,8 @@
 package com.hospital.his.appointments.entity;
 
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -57,8 +60,17 @@ public class AppointmentDocument {
     /*
      * PostgreSQL almacenará el contenido como BYTEA.
      */
-    @Lob
-    @Basic(fetch = FetchType.LAZY)
+    /**
+     * Contenido binario del documento PDF.
+     *
+     * PostgreSQL almacena el arreglo byte[] directamente
+     * en una columna BYTEA.
+     *
+     * @JdbcTypeCode evita que Hibernate interprete
+     * el documento como un Large Object identificado
+     * mediante un OID de tipo BIGINT.
+     */
+    @JdbcTypeCode(SqlTypes.VARBINARY)
     @Column(
             name = "file_content",
             nullable = false,

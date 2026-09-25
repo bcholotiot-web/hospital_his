@@ -3,12 +3,14 @@ package com.hospital.his.appointments.repository;
 import com.hospital.his.appointments.entity.Appointment;
 import com.hospital.his.appointments.entity.AppointmentStatus;
 import com.hospital.his.users.entity.User;
+import com.hospital.his.appointments.entity.FollowUpType;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.Collection;
+import java.util.UUID;
 
 public interface AppointmentRepository
         extends JpaRepository<Appointment, Long> {
@@ -95,4 +97,44 @@ public interface AppointmentRepository
             String doctorUsername
     );
 
+    /**
+     * Recupera una cita creada previamente con la misma
+     * llave de idempotencia.
+     */
+    Optional<Appointment> findByIdempotencyKey(UUID idempotencyKey);
+
+    /**
+     * Comprueba si una consulta ya tiene una cita
+     * de seguimiento activa.
+     *
+     * Se utilizará para evitar seguimientos duplicados
+     * accidentales del mismo tipo.
+     */
+    boolean existsByParentConsultation_IdAndFollowUpTypeAndActiveTrue(Long parentConsultationId, FollowUpType followUpType);
+
+    /**
+     * Lista las citas de seguimiento de una consulta.
+     */
+    List<Appointment> findByParentConsultation_IdAndFollowUpTrueOrderByAppointmentDateTimeDesc(Long parentConsultationId);
+
+    /**
+     * Recupera las citas de un médico en una fecha
+     * y hora específica.
+     *
+     * Después, el servicio determina cuáles estados
+     * bloquean realmente el horario.
+     */
+    List<Appointment> findByDoctor_IdAndAppointmentDateTime(Long doctorId, LocalDateTime appointmentDateTime);
+
+    /**
+     * Comprueba si ya existe una cita de seguimiento
+     * del mismo tipo y con un estado que todavía bloquea
+     * otra programación equivalente.
+     */
+    boolean
+    existsByParentConsultation_IdAndFollowUpTypeAndStatusNotInAndActiveTrue(
+            Long parentConsultationId,
+            FollowUpType followUpType,
+            Collection<AppointmentStatus> excludedStatuses
+    );
 }

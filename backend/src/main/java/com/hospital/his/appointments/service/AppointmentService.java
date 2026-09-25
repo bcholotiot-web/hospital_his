@@ -569,16 +569,20 @@ public class AppointmentService {
                         .doctor(doctor)
                         .branch(branch)
                         .specialty(specialty)
-                        .appointmentDateTime(
-                                appointmentDateTime
-                        )
-                        .reason(
-                                request.getReason().trim()
-                        )
+                        .appointmentDateTime(appointmentDateTime)
+                        .reason(request.getReason().trim())
                         .status(AppointmentStatus.PENDIENTE_DE_PAGO)
                         .reservationExpiresAt(LocalDateTime.now().plusMinutes(5))
                         .priority(AppointmentPriority.NORMAL)
                         .origin(AppointmentOrigin.PORTAL)
+/*
+ * Una cita creada por el paciente desde el portal
+ * no es una cita de seguimiento médico.
+ */
+                        .followUp(false)
+                        .followUpType(null)
+                        .parentConsultation(null)
+                        .idempotencyKey(null)
                         .arrivalTime(null)
                         .active(true)
                         .build();
@@ -795,20 +799,71 @@ public class AppointmentService {
         return getBaseSlots().contains(time);
     }
 
-    /*
-     * Convierte Appointment a AppointmentResponse.
+    /**
+     * Convierte una cita en una respuesta segura.
+     *
+     * También incluye la información de seguimiento
+     * cuando la cita fue creada desde una consulta médica.
      */
     private AppointmentResponse toResponse(Appointment appointment) {
+        boolean followUp = Boolean.TRUE.equals(appointment.getFollowUp());
+
         return AppointmentResponse.builder()
                 .id(appointment.getId())
-                .patientName(appointment.getPatient().getFullName())
-                .doctorName(appointment.getDoctor().getFullName())
-                .branch(appointment.getBranch().getName())
-                .specialty(appointment.getSpecialty().getName())
-                .appointmentDateTime(appointment.getAppointmentDateTime().toString())
+                .patientName(appointment
+                                .getPatient()
+                                .getFullName())
+                .doctorName(appointment
+                                .getDoctor()
+                                .getFullName())
+                .branch(appointment
+                                .getBranch()
+                                .getName())
+                .specialty(appointment
+                                .getSpecialty()
+                                .getName())
+                .appointmentDateTime(appointment
+                                .getAppointmentDateTime()
+                                .toString())
                 .reason(appointment.getReason())
-                .status(appointment.getStatus().name())
-                .reservationExpiresAt(appointment.getReservationExpiresAt().toString())
+                .status(appointment
+                                .getStatus()
+                                .name())
+                .reservationExpiresAt(appointment
+                                .getReservationExpiresAt()
+                                .toString())
+                .priority(appointment
+                                .getPriority()
+                                .name())
+                .origin(appointment
+                                .getOrigin()
+                                .name())
+                .followUp(followUp)
+                .followUpType(appointment.getFollowUpType() != null
+                                ? appointment
+                                .getFollowUpType()
+                                .name()
+                                : null)
+                .parentConsultationId(appointment
+                                .getParentConsultation()
+                                != null
+                                ? appointment
+                                .getParentConsultation()
+                                .getId()
+                                : null)
+                .parentAppointmentId(appointment
+                                .getParentConsultation()
+                                != null
+                                && appointment
+                                .getParentConsultation()
+                                .getAppointment()
+                                != null
+                                ? appointment
+                                .getParentConsultation()
+                                .getAppointment()
+                                .getId()
+                                : null)
+                .message(followUp ? "Cita de seguimiento." : "Cita médica.")
                 .build();
     }
 

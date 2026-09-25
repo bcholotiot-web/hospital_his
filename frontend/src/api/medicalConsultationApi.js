@@ -155,3 +155,35 @@ export const getDoctorPrescriptions = () => {
     );
 };
 
+/**
+ * Obtiene los metadatos de los documentos cargados
+ * por el paciente durante el agendamiento.
+ */
+export const getDoctorAppointmentDocuments = (
+    appointmentId
+) => {
+    return axios.get(
+        `${API_URL}/appointments/${appointmentId}/documents`,
+        getAuthHeaders()
+    );
+};
+
+/**
+ * Descarga el PDF como contenido binario.
+ *
+ * responseType blob evita que Axios intente
+ * interpretar el PDF como JSON.
+ */
+export const downloadDoctorAppointmentDocument = (
+    appointmentId,
+    documentId
+) => {
+    return axios.get(
+        `${API_URL}/appointments/${appointmentId}/documents/${documentId}/download`,
+        {
+            ...getAuthHeaders(),
+            responseType: "blob"
+        }
+    );
+};
+

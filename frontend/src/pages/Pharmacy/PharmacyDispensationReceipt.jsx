@@ -292,7 +292,7 @@ function PharmacyDispensationReceipt({
                         label="Usuario de Farmacia"
                         value={
                             dispensation
-                                .pharmacyUsername
+                                .pharmacyUdbeddrname
                         }
                     />
                 </section>

@@ -23,6 +23,8 @@ import com.hospital.his.users.repository.UserRepository;
 import com.hospital.his.vitalsigns.dto.VitalSignsResponse;
 import com.hospital.his.vitalsigns.entity.VitalSigns;
 import com.hospital.his.vitalsigns.repository.VitalSignsRepository;
+import com.hospital.his.appointments.dto.AppointmentDocumentResponse;
+import com.hospital.his.appointments.service.AppointmentDocumentService;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.data.domain.PageRequest;
@@ -33,6 +35,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.text.Normalizer;
 
 @Service
 public class MedicalConsultationService {
@@ -66,6 +69,12 @@ public class MedicalConsultationService {
             laboratoryOrderRepository;
 
     private final PrescriptionRepository prescriptionRepository;
+    /**
+     * Permite incluir los documentos cargados por el
+     * paciente dentro del detalle clínico.
+     */
+    private final AppointmentDocumentService
+            appointmentDocumentService;
 
     public MedicalConsultationService(
             AppointmentRepository appointmentRepository,
@@ -75,7 +84,7 @@ public class MedicalConsultationService {
             UserRepository userRepository,
             AuditService auditService,
             LaboratoryOrderRepository laboratoryOrderRepository,
-            PrescriptionRepository prescriptionRepository
+            PrescriptionRepository prescriptionRepository, AppointmentDocumentService appointmentDocumentService
     ) {
         this.appointmentRepository = appointmentRepository;
         this.medicalConsultationRepository = medicalConsultationRepository;
@@ -85,6 +94,7 @@ public class MedicalConsultationService {
         this.auditService = auditService;
         this.laboratoryOrderRepository = laboratoryOrderRepository;
         this.prescriptionRepository = prescriptionRepository;
+        this.appointmentDocumentService = appointmentDocumentService;
     }
 
     /*
@@ -753,31 +763,15 @@ public class MedicalConsultationService {
     }
 
     private User validateAuthenticatedDoctor(String doctorUsername) {
-        if (doctorUsername == null
-                || doctorUsername.isBlank()) {
+        if (doctorUsername == null || doctorUsername.isBlank()) {
 
-            throw new RuntimeException(
-                    "No se pudo identificar al médico autenticado."
-            );
+            throw new RuntimeException("No se pudo identificar al médico autenticado.");
         }
 
-        User doctor =
-                userRepository
-                        .findByUsername(
-                                doctorUsername
-                        )
-                        .orElseThrow(() ->
-                                new RuntimeException(
-                                        "No se encontró al médico autenticado."
-                                )
-                        );
+        User doctor = userRepository.findByUsername(doctorUsername).orElseThrow(() -> new RuntimeException("No se encontró al médico autenticado."));
 
-        if (!Boolean.TRUE.equals(
-                doctor.getActive()
-        )) {
-            throw new RuntimeException(
-                    "La cuenta del médico se encuentra inactiva."
-            );
+        if (!Boolean.TRUE.equals(doctor.getActive())) {
+            throw new RuntimeException("La cuenta del médico se encuentra inactiva.");
         }
 
         String roleName =
@@ -788,30 +782,28 @@ public class MedicalConsultationService {
                         : null;
 
         if (!isDoctorRole(roleName)) {
-            throw new RuntimeException(
-                    "Solamente un médico puede realizar esta operación."
-            );
+            throw new RuntimeException("Solamente un médico puede realizar esta operación.");
         }
 
         return doctor;
     }
 
-    private boolean isDoctorRole(String roleName) {
+    /**
+     * Reconoce variantes del rol:
+     *
+     * MEDICO
+     * Médico
+     * Medico
+     */
+    private boolean isDoctorRole(
+            String roleName
+    ) {
         if (roleName == null) {
             return false;
         }
+        String normalizedRole = Normalizer.normalize(roleName, Normalizer.Form.NFD).replaceAll("\\p{M}", "").trim().toUpperCase(Locale.ROOT);
 
-        String normalizedRole =
-                roleName
-                        .trim()
-                        .toUpperCase(
-                                Locale.ROOT
-                        )
-                        .replace("É", "E");
-
-        return normalizedRole.equals(
-                "MEDICO"
-        );
+        return normalizedRole.equals("MEDICO");
     }
 
     private Appointment findDoctorAppointment(Long appointmentId, String doctorUsername) {
@@ -1040,29 +1032,11 @@ public class MedicalConsultationService {
                  * 3. La cita está CONSULTA_EVALUADA.
                  * 4. Todavía no existe una orden activa.
                  */
-                .canCreateLaboratoryOrder(
-                        consultation != null
-                                && consultation.getStatus()
-                                == MedicalConsultationStatus.FINALIZADA
-                                && appointment.getStatus()
-                                == AppointmentStatus.CONSULTA_EVALUADA
-                                && !hasActiveLaboratoryOrder
-                )
-                .canMarkNoShow(
-                        appointment.getStatus()
-                                == AppointmentStatus.SIGNOS_REGISTRADOS
-                )
-                .canCreatePrescription(
-                        consultation != null
-                                && consultation.getStatus()
-                                == MedicalConsultationStatus.FINALIZADA
-                                && appointment.getStatus()
-                                == AppointmentStatus.CONSULTA_EVALUADA
-                                && !hasActivePrescription
-                )
-                .hasActivePrescription(
-                        hasActivePrescription
-                )
+                .canCreateLaboratoryOrder(consultation != null && consultation.getStatus() == MedicalConsultationStatus.FINALIZADA && appointment.getStatus() == AppointmentStatus.CONSULTA_EVALUADA && !hasActiveLaboratoryOrder)
+                .canMarkNoShow(appointment.getStatus() == AppointmentStatus.SIGNOS_REGISTRADOS)
+                .canCreatePrescription(consultation != null && consultation.getStatus() == MedicalConsultationStatus.FINALIZADA && appointment.getStatus() == AppointmentStatus.CONSULTA_EVALUADA && !hasActivePrescription)
+                .hasActivePrescription(hasActivePrescription)
+                .hasActiveLaboratoryOrder(hasActiveLaboratoryOrder)
                 .build();
     }
 
@@ -1132,6 +1106,21 @@ public class MedicalConsultationService {
                         == AppointmentStatus.CONSULTA_EVALUADA
                         && !hasActivePrescription;
 
+        /*
+         * Recuperar únicamente metadatos.
+         *
+         * El PDF se descarga por un endpoint seguro.
+         */
+        List<AppointmentDocumentResponse>
+                appointmentDocuments =
+                appointmentDocumentService
+                        .getDocumentMetadata(
+                                appointment.getId()
+                        );
+
+        boolean hasAppointmentDocuments =
+                !appointmentDocuments.isEmpty();
+
         return MedicalConsultationResponse.builder()
                 .consultationId(consultation.getId())
                 .appointmentId(appointment.getId())
@@ -1157,6 +1146,9 @@ public class MedicalConsultationService {
                 .careClosedAt(consultation.getCareClosedAt() != null ? consultation.getCareClosedAt().toString() : null)
                 .canCreateLaboratoryOrder(canCreateLaboratoryOrder)
                 .hasActiveLaboratoryOrder(hasActiveLaboratoryOrder)
+                .hasAppointmentDocuments(hasAppointmentDocuments)
+                .appointmentDocumentCount((long) appointmentDocuments.size())
+                .appointmentDocuments(appointmentDocuments)
                 .vitalSigns(toVitalSignsResponse(vitalSigns))
                 .message(message)
                 .canCreatePrescription(canCreatePrescription)

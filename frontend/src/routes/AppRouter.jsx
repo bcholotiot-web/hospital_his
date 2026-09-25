@@ -19,6 +19,7 @@ import LaboratoryOrders from "../pages/Laboratory/LaboratoryOrders";
 import LaboratoryPaymentPage from "../pages/LaboratoryPayment/LaboratoryPaymentPage";
 import PharmacyDashboard from "../pages/Pharmacy/PharmacyDashboard";
 import PharmacyDispensationPage from "../pages/Pharmacy/PharmacyDispensationPage";
+import FollowUpAppointmentWizard from "../pages/Appointments/FollowUpAppointmentWizard";
 
 function AppRouter() {
 
@@ -44,7 +45,7 @@ function AppRouter() {
                 <Route path="/cashier/laboratory-payments" element={<PrivateRoute allowedRoles={["CAJERO", "Cajero"]}><LaboratoryPaymentPage /></PrivateRoute>} />
                 <Route path="/pharmacy" element={<PrivateRoute allowedRoles={["FARMACIA", "Farmacia"]}><PharmacyDashboard /></PrivateRoute>} />
                 <Route path="/pharmacy/dispensations" element={<PrivateRoute allowedRoles={["FARMACIA", "Farmacia"]}><PharmacyDispensationPage /></PrivateRoute>} />
-
+                <Route path="/doctor/follow-up/:consultationId" element={<PrivateRoute allowedRoles={["MEDICO", "Medico", "Médico"]}><FollowUpAppointmentWizard /></PrivateRoute>} />
 
             </Routes>
         </BrowserRouter>
