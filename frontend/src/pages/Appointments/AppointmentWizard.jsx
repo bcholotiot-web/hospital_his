@@ -44,7 +44,14 @@ function AppointmentWizard() {
     useEffect(() => {
         loadBranches();
     }, []);
-
+    /**
+     * Obtiene las sedes activas disponibles
+     * para agendar una cita.
+     *
+     * Si no existen sedes activas, se muestra un
+     * mensaje funcional sin tratarlo como error
+     * técnico del servidor.
+     */
     const loadBranches = async () => {
         try {
             setLoading(true);
@@ -53,19 +60,53 @@ function AppointmentWizard() {
             const response =
                 await getAppointmentBranches();
 
-            const activeBranches =
-                response.data.filter(
-                    branch => branch.active
-                );
+            /*
+             * Proteger el componente si el backend
+             * devuelve un valor distinto de un arreglo.
+             */
+            const availableBranches =
+                Array.isArray(response.data)
+                    ? response.data
+                    : [];
 
-            setBranches(activeBranches);
+            setBranches(
+                availableBranches
+            );
+
+            /*
+             * Limpiar selecciones dependientes.
+             */
+            setBranchId("");
+            setSpecialtyId("");
+            setDoctorId("");
+            setSelectedDate("");
+            setSelectedDateTime("");
+            setSpecialties([]);
+            setDoctors([]);
+            setAvailableSlots([]);
+
+            if (
+                availableBranches.length === 0
+            ) {
+                setErrorMessage(
+                    "No existen sucursales activas " +
+                    "disponibles para agendar una cita."
+                );
+            }
 
         } catch (error) {
-            console.error(error);
+            console.error(
+                "Error cargando sucursales:",
+                error
+            );
+
+            setBranches([]);
 
             setErrorMessage(
-                error.response?.data?.message ||
-                "No fue posible cargar las sucursales."
+                getBackendMessage(
+                    error,
+                    "No fue posible cargar las sucursales."
+                )
             );
 
         } finally {
@@ -73,6 +114,11 @@ function AppointmentWizard() {
         }
     };
 
+    /**
+ * CU-03 y CU-13:
+ * Carga únicamente las especialidades activas
+ * configuradas para la sede seleccionada.
+ */
     const loadSpecialties = async () => {
         if (!branchId) {
             setErrorMessage(
@@ -86,33 +132,74 @@ function AppointmentWizard() {
             setLoading(true);
             setErrorMessage("");
 
+            /*
+             * Limpiar todas las selecciones dependientes
+             * antes de consultar el backend.
+             */
+            setSpecialties([]);
+            setSpecialtyId("");
+            setDoctorId("");
+            setSelectedDate("");
+            setSelectedDateTime("");
+            setDoctors([]);
+            setAvailableSlots([]);
+
             const response =
                 await getSpecialtiesByBranch(
                     Number(branchId)
                 );
 
-            setSpecialties(response.data);
+            const availableSpecialties =
+                Array.isArray(response.data)
+                    ? response.data
+                    : [];
 
+            setSpecialties(
+                availableSpecialties
+            );
+
+            /*
+             * Avanzar al paso 2 incluso cuando no existan
+             * especialidades, porque ese paso mostrará
+             * el flujo alterno correspondiente.
+             */
+            setCurrentStep(2);
+
+            if (
+                availableSpecialties.length === 0
+            ) {
+                const branch =
+                    branches.find(
+                        item =>
+                            item.id ===
+                            Number(branchId)
+                    );
+
+                setErrorMessage(
+                    `No hay especialidades disponibles para la sucursal ${branch?.name ||
+                    "seleccionada"
+                    }. Seleccione otra sucursal.`
+                );
+            }
+
+        } catch (error) {
+            console.error(
+                "Error cargando especialidades por sede:",
+                error
+            );
+
+            setSpecialties([]);
             setSpecialtyId("");
             setDoctorId("");
-            setSelectedDate("");
-            setSelectedDateTime("");
-
             setDoctors([]);
             setAvailableSlots([]);
 
-            setCurrentStep(2);
-
-        } catch (error) {
-            console.error(error);
-
-            setSpecialties([]);
-
             setErrorMessage(
-                error.response?.data?.message ||
-                "No fue posible cargar las especialidades de la sucursal seleccionada."
+                getBackendMessage(
+                    error,
+                    "No fue posible cargar las especialidades de la sucursal seleccionada."
+                )
             );
-
         } finally {
             setLoading(false);
         }
@@ -619,6 +706,7 @@ function AppointmentWizard() {
                                 setSpecialties([]);
                                 setDoctors([]);
                                 setAvailableSlots([]);
+                                setErrorMessage("");
                             }}
                         >
                             <option value="">
@@ -662,7 +750,24 @@ function AppointmentWizard() {
 
                         {specialties.length === 0 ? (
                             <div className="wizard-empty">
-                                No hay especialidades disponibles para la sucursal seleccionada.
+                                <strong>
+                                    No hay especialidades disponibles
+                                </strong>
+
+                                <p>
+                                    La sucursal{" "}
+                                    <b>
+                                        {selectedBranch?.name ||
+                                            "seleccionada"}
+                                    </b>{" "}
+                                    todavía no tiene especialidades
+                                    activas configuradas.
+                                </p>
+
+                                <p>
+                                    Regrese al paso anterior y seleccione
+                                    otra sucursal.
+                                </p>
                             </div>
                         ) : (
                             <div className="wizard-options">
@@ -1173,6 +1278,39 @@ function AppointmentWizard() {
             </div>
         </MainLayout>
     );
+}
+
+/**
+ * Obtiene un mensaje legible enviado por Spring Boot.
+ *
+ * También admite respuestas de Jakarta Validation.
+ */
+function getBackendMessage(
+    error,
+    fallback
+) {
+    const data =
+        error.response?.data;
+
+    if (typeof data === "string") {
+        return data;
+    }
+
+    const validationErrors =
+        data?.validationErrors;
+
+    if (validationErrors) {
+        const messages =
+            Object.values(
+                validationErrors
+            );
+
+        if (messages.length > 0) {
+            return messages[0];
+        }
+    }
+
+    return data?.message || fallback;
 }
 
 export default AppointmentWizard;

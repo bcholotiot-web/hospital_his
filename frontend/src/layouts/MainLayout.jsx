@@ -80,6 +80,18 @@ function MainLayout({ children }) {
                             >
                                 Especialidades
                             </Link>
+
+                            {/*
+         * CU-13:
+         * Configuración de especialidades
+         * disponibles en cada sede.
+         */}
+                            <Link
+                                to="/branch-specialties"
+                                className="main-sidebar-link"
+                            >
+                                Especialidades por Sede
+                            </Link>
                         </>
                     )}
 

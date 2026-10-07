@@ -47,6 +47,14 @@ public class SecurityConfig {
                         .requestMatchers("/api/specialties/**")
                         .hasRole("ADMIN")
 
+                        /*
+                         * CU-13:
+                         * Administración de especialidades disponibles
+                         * por sede.
+                         */
+                        .requestMatchers("/api/admin/branch-specialties/**")
+                        .hasRole("ADMIN")
+
                         .requestMatchers("/api/roles/**")
                         .hasRole("ADMIN")
 

@@ -20,18 +20,28 @@ export const getAppointmentBranches = () => {
     );
 };
 
-//Obtiene las especialidades de una sucursal
-export const getSpecialtiesByBranch = (branchId) => {
+/**
+ * CU-03 y CU-13:
+ * Obtiene únicamente las especialidades activas
+ * configuradas para la sede seleccionada.
+ *
+ * El backend valida:
+ *
+ * - Sede existente y activa.
+ * - Asignación sede-especialidad activa.
+ * - Especialidad activa.
+ */
+export const getSpecialtiesByBranch = (
+    branchId
+) => {
     return axios.get(
-        `${API_URL}/specialties`,
-        {
-            params: {
-                branchId
-            },
-            ...getAuthHeaders()
-        }
+        `${API_URL}/branches/${branchId}/specialties`,
+        getAuthHeaders()
     );
 };
+
+
+
 
 //Obtiene medicos de una sucursal y especialidad
 export const getDoctors = (branchId, specialtyId) => {

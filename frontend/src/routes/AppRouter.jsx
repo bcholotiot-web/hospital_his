@@ -20,6 +20,16 @@ import LaboratoryPaymentPage from "../pages/LaboratoryPayment/LaboratoryPaymentP
 import PharmacyDashboard from "../pages/Pharmacy/PharmacyDashboard";
 import PharmacyDispensationPage from "../pages/Pharmacy/PharmacyDispensationPage";
 import FollowUpAppointmentWizard from "../pages/Appointments/FollowUpAppointmentWizard";
+/*
+ * CU-13:
+ * Administración de especialidades disponibles
+ * en cada sede.
+ */
+import BranchSpecialtyList from "../pages/BranchSpecialty/BranchSpecialtyList";
+
+import BranchSpecialtyForm
+    from "../pages/BranchSpecialty/BranchSpecialtyForm";
+
 
 function AppRouter() {
 
@@ -31,8 +41,22 @@ function AppRouter() {
                 <Route path="/register" element={<Register />} />
                 <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
                 <Route path="/users" element={<PrivateRoute allowedRoles={["ADMIN", "Administrador"]}><Users /></PrivateRoute>} />
-                <Route path="/branches" element={<PrivateRoute><Branches /></PrivateRoute>} />
-                <Route path="/specialties" element={<PrivateRoute><Specialties /></PrivateRoute>} />
+                <Route path="/branches" element={<PrivateRoute allowedRoles={["ADMIN", "Administrador"]}><Branches /></PrivateRoute>} />
+                <Route path="/specialties" element={<PrivateRoute allowedRoles={["ADMIN", "Administrador"]}><Specialties /></PrivateRoute>} />
+
+                {/*
+                * CU-13:
+                * Listado administrativo de asignaciones
+                * entre sedes y especialidades.
+                */}
+                <Route path="/branch-specialties" element={<PrivateRoute allowedRoles={["ADMIN", "Administrador"]}><BranchSpecialtyList /></PrivateRoute>} />
+
+                {/*
+                * CU-13:
+                * Formulario para crear o reactivar
+                * una asignación.
+                */}
+                <Route path="/branch-specialties/create" element={<PrivateRoute allowedRoles={["ADMIN", "Administrador"]}><BranchSpecialtyForm /></PrivateRoute>} />
                 <Route path="/appointments/new" element={<PrivateRoute allowedRoles={["PACIENTE", "Paciente"]}> <AppointmentWizard /></PrivateRoute>} />
                 <Route path="/payments/success" element={<PrivateRoute allowedRoles={["PACIENTE", "Paciente"]}><PaymentConfirmation /></PrivateRoute>} />
                 <Route path="/payments/:appointmentId" element={<PrivateRoute allowedRoles={["PACIENTE", "Paciente"]}><PaymentPage /></PrivateRoute>} />
