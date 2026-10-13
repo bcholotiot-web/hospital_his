@@ -10,6 +10,7 @@ import com.hospital.his.pharmacy.entity.PharmacyInventory;
 import com.hospital.his.pharmacy.repository.PharmacyInventoryRepository;
 import com.hospital.his.users.entity.User;
 import com.hospital.his.users.repository.UserRepository;
+import com.hospital.his.pharmacy.entity.InventoryMovementType;
 
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.OptimisticLockingFailureException;
@@ -35,6 +36,13 @@ public class PharmacyInventoryService {
     private final UserRepository
             userRepository;
 
+    /**
+     * Registra la bitácora persistente de cambios
+     * en las existencias.
+     */
+    private final InventoryMovementService
+            inventoryMovementService;
+
     private final AuditService
             auditService;
 
@@ -43,7 +51,7 @@ public class PharmacyInventoryService {
                     pharmacyInventoryRepository,
             MedicationRepository
                     medicationRepository,
-            UserRepository userRepository,
+            UserRepository userRepository, InventoryMovementService inventoryMovementService,
             AuditService auditService
     ) {
         this.pharmacyInventoryRepository =
@@ -54,6 +62,7 @@ public class PharmacyInventoryService {
 
         this.userRepository =
                 userRepository;
+        this.inventoryMovementService = inventoryMovementService;
 
         this.auditService =
                 auditService;
@@ -67,10 +76,7 @@ public class PharmacyInventoryService {
      * no desde un parámetro enviado por el frontend.
      */
     @Transactional(readOnly = true)
-    public List<PharmacyInventoryResponse>
-    getMyBranchInventory(
-            String pharmacyUsername
-    ) {
+    public List<PharmacyInventoryResponse> getMyBranchInventory(String pharmacyUsername) {
         User pharmacyUser =
                 validatePharmacyUser(
                         pharmacyUsername
@@ -93,6 +99,48 @@ public class PharmacyInventoryService {
                 )
                 .toList();
     }
+
+    /**
+     * Lista todos los registros de inventario de la
+     * sucursal del usuario autenticado.
+     *
+     * Incluye:
+     *
+     * - Inventarios activos.
+     * - Inventarios inactivos.
+     *
+     * Este método se utiliza únicamente para el
+     * mantenimiento administrativo de inventario.
+     */
+    @Transactional(readOnly = true)
+    public List<PharmacyInventoryResponse> getMyBranchInventoryAdministration(String pharmacyUsername) {
+        User pharmacyUser =
+                validatePharmacyUser(
+                        pharmacyUsername
+                );
+
+        return pharmacyInventoryRepository
+                .findByBranch_IdOrderByMedication_NameAsc(
+                        pharmacyUser
+                                .getBranch()
+                                .getId()
+                )
+                .stream()
+                .map(inventory ->
+                        toResponse(
+                                inventory,
+                                Boolean.TRUE.equals(
+                                        inventory.getActive()
+                                )
+                                        ? buildInventoryMessage(
+                                        inventory
+                                )
+                                        : "Registro de inventario inactivo."
+                        )
+                )
+                .toList();
+    }
+
 
     /**
      * Obtiene un inventario específico.
@@ -211,6 +259,24 @@ public class PharmacyInventoryService {
         LocalDateTime now =
                 LocalDateTime.now();
 
+        /*
+         * Indica si estamos creando un inventario nuevo
+         * o reactivando una fila histórica.
+         */
+        boolean reactivatingInventory =
+                existingInventory != null;
+
+        /*
+         * Guarda el stock anterior para registrar
+         * correctamente el movimiento de reactivación.
+         *
+         * En una creación nueva, el stock anterior es cero.
+         */
+        Integer previousStock =
+                existingInventory != null
+                        ? existingInventory.getCurrentStock()
+                        : 0;
+
         PharmacyInventory inventory;
 
         if (existingInventory != null) {
@@ -241,6 +307,7 @@ public class PharmacyInventoryService {
             );
 
             existingInventory.setActive(true);
+
             existingInventory.setUpdatedAt(now);
 
             existingInventory.setUpdatedBy(
@@ -286,6 +353,60 @@ public class PharmacyInventoryService {
                             .saveAndFlush(
                                     inventory
                             );
+
+            /*
+             * Definir el tipo de movimiento según
+             * la operación que se acaba de realizar.
+             *
+             * Si existía una fila inactiva:
+             * REACTIVACION.
+             *
+             * Si no existía:
+             * STOCK_INICIAL.
+             */
+            InventoryMovementType movementType =
+                    reactivatingInventory
+                            ? InventoryMovementType.REACTIVACION
+                            : InventoryMovementType.STOCK_INICIAL;
+
+            /*
+             * La cantidad debe almacenarse como valor
+             * absoluto.
+             *
+             * Ejemplos:
+             *
+             * Nuevo inventario:
+             * anterior = 0
+             * nuevo = 100
+             * cantidad = 100
+             *
+             * Reactivación:
+             * anterior = 20
+             * nuevo = 80
+             * cantidad = 60
+             */
+            Integer movementQuantity =
+                    Math.abs(
+                            inventory.getCurrentStock()
+                                    - previousStock
+                    );
+
+            String movementReason =
+                    reactivatingInventory
+                            ? "Reactivación del registro de inventario."
+                            : "Registro inicial del medicamento en inventario.";
+
+            inventoryMovementService.registerMovement(
+                    inventory,
+                    movementType,
+                    previousStock,
+                    movementQuantity,
+                    inventory.getCurrentStock(),
+                    movementReason,
+                    "PHARMACY_INVENTORY",
+                    inventory.getId(),
+                    pharmacyUser.getUsername()
+            );
 
         } catch (
                 DataIntegrityViolationException exception
@@ -399,6 +520,65 @@ public class PharmacyInventoryService {
             throw new RuntimeException(
                     "El inventario fue actualizado por otra persona. "
                             + "Recargue la información e intente nuevamente."
+            );
+        }
+
+        /*
+         * Comparar el stock anterior con el stock resultante.
+         *
+         * Si únicamente cambió minimumStock, no se genera
+         * un movimiento cuantitativo porque las existencias
+         * permanecen iguales.
+         */
+        Integer resultingStock =
+                inventory.getCurrentStock();
+
+        Integer stockDifference =
+                resultingStock - previousStock;
+
+        if (stockDifference != 0) {
+
+            /*
+             * Un resultado mayor representa un incremento.
+             * Un resultado menor representa una reducción.
+             */
+            InventoryMovementType movementType =
+                    stockDifference > 0
+                            ? InventoryMovementType.AJUSTE_POSITIVO
+                            : InventoryMovementType.AJUSTE_NEGATIVO;
+
+            /*
+             * La cantidad se guarda siempre como valor positivo.
+             *
+             * La dirección se obtiene del tipo del movimiento.
+             */
+            Integer movementQuantity =
+                    Math.abs(
+                            stockDifference
+                    );
+
+            String movementReason =
+                    stockDifference > 0
+                            ? "Ajuste manual positivo del inventario."
+                            : "Ajuste manual negativo del inventario.";
+
+            /*
+             * Registrar el movimiento dentro de la misma
+             * transacción que actualizó el inventario.
+             *
+             * Si la bitácora falla, la actualización del stock
+             * también se revierte.
+             */
+            inventoryMovementService.registerMovement(
+                    inventory,
+                    movementType,
+                    previousStock,
+                    movementQuantity,
+                    resultingStock,
+                    movementReason,
+                    "MANUAL_ADJUSTMENT",
+                    inventory.getId(),
+                    pharmacyUser.getUsername()
             );
         }
 
@@ -827,6 +1007,10 @@ public class PharmacyInventoryService {
                 .presentation(
                         inventory.getMedication()
                                 .getPresentation()
+                )
+                .medicationUnit(
+                        inventory.getMedication()
+                                .getUnit()
                 )
                 .unitPrice(
                         inventory.getMedication()

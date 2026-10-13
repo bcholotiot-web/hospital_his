@@ -33,6 +33,14 @@ public class PharmacyInventoryResponse {
 
     private String presentation;
 
+    /**
+     * Unidad utilizada para expresar las existencias.
+     *
+     * Ejemplos:
+     * TABLETA, CÁPSULA, FRASCO, MILILITRO.
+     */
+    private String medicationUnit;
+
     private BigDecimal unitPrice;
 
     private Boolean controlled;

@@ -1,33 +1,145 @@
 import axios from "axios";
 
-const API_URL = "http://localhost:8080/api/specialties";
+const API_URL =
+    "http://localhost:8080/api/specialties";
 
-const getAuthHeaders = () => {
-    const token = localStorage.getItem("token");
+/**
+ * Construye la configuración de autenticación.
+ */
+const getAuthConfig = () => {
+    const token =
+        localStorage.getItem("token");
 
     return {
         headers: {
-            Authorization: `Bearer ${token}`
+            Authorization:
+                `Bearer ${token}`
         }
     };
 };
 
+/**
+ * Obtiene el listado administrativo paginado.
+ *
+ * Filtros:
+ *
+ * - name
+ * - active
+ * - page
+ * - size
+ */
+export const getSpecialtiesPage = ({
+    name = "",
+    active = "",
+    page = 0,
+    size = 10
+} = {}) => {
+    const params = {
+        page,
+        size
+    };
+
+    if (name.trim()) {
+        params.name =
+            name.trim();
+    }
+
+    if (
+        active !== "" &&
+        active !== null &&
+        active !== undefined
+    ) {
+        params.active =
+            active;
+    }
+
+    return axios.get(
+        `${API_URL}/page`,
+        {
+            ...getAuthConfig(),
+            params
+        }
+    );
+};
+
+/**
+ * Obtiene el listado completo.
+ *
+ * Se conserva temporalmente por compatibilidad.
+ */
 export const getSpecialties = () => {
-    return axios.get(API_URL, getAuthHeaders());
+    return axios.get(
+        API_URL,
+        getAuthConfig()
+    );
 };
 
-export const createSpecialty = (data) => {
-    return axios.post(API_URL, data, getAuthHeaders());
+/**
+ * Busca una especialidad por ID.
+ */
+export const getSpecialtyById = id => {
+    return axios.get(
+        `${API_URL}/${id}`,
+        getAuthConfig()
+    );
 };
 
-export const updateSpecialty = (id, data) => {
-    return axios.put(`${API_URL}/${id}`, data, getAuthHeaders());
+/**
+ * Crea o reactiva una especialidad.
+ *
+ * El backend controla el estado inicial.
+ */
+export const createSpecialty = data => {
+    return axios.post(
+        API_URL,
+        {
+            name: data.name,
+            description:
+                data.description
+        },
+        getAuthConfig()
+    );
 };
 
-export const changeSpecialtyStatus = (id, active) => {
+/**
+ * Actualiza nombre y descripción.
+ *
+ * La versión es obligatoria.
+ */
+export const updateSpecialty = (
+    id,
+    data
+) => {
+    return axios.put(
+        `${API_URL}/${id}`,
+        {
+            name: data.name,
+            description:
+                data.description,
+            version:
+                data.version
+        },
+        getAuthConfig()
+    );
+};
+
+/**
+ * Activa o desactiva una especialidad.
+ */
+export const changeSpecialtyStatus = (
+    id,
+    active,
+    version
+) => {
     return axios.patch(
-        `${API_URL}/${id}/status?active=${active}`,
-        {},
-        getAuthHeaders()
+        `${API_URL}/${id}/status`,
+        null,
+        {
+            ...getAuthConfig(),
+            params: {
+                active,
+                version
+            }
+        }
     );
 };

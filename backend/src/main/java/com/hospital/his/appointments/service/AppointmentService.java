@@ -42,6 +42,12 @@ public class AppointmentService {
     private final BranchSpecialtyRepository branchSpecialtyRepository;
     private final AuditService auditService;
     private final AppointmentDocumentService appointmentDocumentService;
+    /**
+     * Resuelve nombre, descripción y color
+     * del estado para el contexto del paciente.
+     */
+    private final AppointmentStatusPresentationService
+            appointmentStatusPresentationService;
 
     public AppointmentService(
             AppointmentRepository appointmentRepository,
@@ -50,7 +56,7 @@ public class AppointmentService {
             SpecialtyRepository specialtyRepository,
             BranchSpecialtyRepository branchSpecialtyRepository,
             AuditService auditService,
-            AppointmentDocumentService appointmentDocumentService
+            AppointmentDocumentService appointmentDocumentService, AppointmentStatusPresentationService appointmentStatusPresentationService
     ) {
         this.appointmentRepository = appointmentRepository;
         this.userRepository = userRepository;
@@ -59,6 +65,7 @@ public class AppointmentService {
         this.branchSpecialtyRepository = branchSpecialtyRepository;
         this.auditService = auditService;
         this.appointmentDocumentService = appointmentDocumentService;
+        this.appointmentStatusPresentationService = appointmentStatusPresentationService;
     }
 
     /*
@@ -805,65 +812,137 @@ public class AppointmentService {
      * También incluye la información de seguimiento
      * cuando la cita fue creada desde una consulta médica.
      */
-    private AppointmentResponse toResponse(Appointment appointment) {
-        boolean followUp = Boolean.TRUE.equals(appointment.getFollowUp());
+    /**
+     * Convierte una cita en una respuesta segura
+     * para el paciente.
+     *
+     * Incluye:
+     *
+     * - Código técnico del estado.
+     * - Presentación visual para paciente.
+     * - Información de seguimiento.
+     */
+    private AppointmentResponse toResponse(
+            Appointment appointment
+    ) {
+        boolean followUp =
+                Boolean.TRUE.equals(
+                        appointment.getFollowUp()
+                );
 
-        return AppointmentResponse.builder()
-                .id(appointment.getId())
-                .patientName(appointment
+        return AppointmentResponse
+                .builder()
+                .id(
+                        appointment.getId()
+                )
+                .patientName(
+                        appointment
                                 .getPatient()
-                                .getFullName())
-                .doctorName(appointment
+                                .getFullName()
+                )
+                .doctorName(
+                        appointment
                                 .getDoctor()
-                                .getFullName())
-                .branch(appointment
+                                .getFullName()
+                )
+                .branch(
+                        appointment
                                 .getBranch()
-                                .getName())
-                .specialty(appointment
+                                .getName()
+                )
+                .specialty(
+                        appointment
                                 .getSpecialty()
-                                .getName())
-                .appointmentDateTime(appointment
+                                .getName()
+                )
+                .appointmentDateTime(
+                        appointment
                                 .getAppointmentDateTime()
-                                .toString())
-                .reason(appointment.getReason())
-                .status(appointment
+                                .toString()
+                )
+                .reason(
+                        appointment.getReason()
+                )
+                /*
+                 * Código técnico que continúa siendo
+                 * utilizado por el frontend para reglas
+                 * como pagos y cancelaciones.
+                 */
+                .status(
+                        appointment.getStatus() != null
+                                ? appointment
                                 .getStatus()
-                                .name())
-                .reservationExpiresAt(appointment
+                                .name()
+                                : null
+                )
+                /*
+                 * Presentación visual resuelta para
+                 * el contexto del paciente.
+                 */
+                .statusPresentation(
+                        appointmentStatusPresentationService
+                                .resolveForPatient(
+                                        appointment.getStatus()
+                                )
+                )
+                .reservationExpiresAt(
+                        appointment
+                                .getReservationExpiresAt() != null
+                                ? appointment
                                 .getReservationExpiresAt()
-                                .toString())
-                .priority(appointment
+                                .toString()
+                                : null
+                )
+                .priority(
+                        appointment.getPriority() != null
+                                ? appointment
                                 .getPriority()
-                                .name())
-                .origin(appointment
+                                .name()
+                                : null
+                )
+                .origin(
+                        appointment.getOrigin() != null
+                                ? appointment
                                 .getOrigin()
-                                .name())
-                .followUp(followUp)
-                .followUpType(appointment.getFollowUpType() != null
+                                .name()
+                                : null
+                )
+                .followUp(
+                        followUp
+                )
+                .followUpType(
+                        appointment
+                                .getFollowUpType() != null
                                 ? appointment
                                 .getFollowUpType()
                                 .name()
-                                : null)
-                .parentConsultationId(appointment
-                                .getParentConsultation()
-                                != null
+                                : null
+                )
+                .parentConsultationId(
+                        appointment
+                                .getParentConsultation() != null
                                 ? appointment
                                 .getParentConsultation()
                                 .getId()
-                                : null)
-                .parentAppointmentId(appointment
-                                .getParentConsultation()
-                                != null
-                                && appointment
-                                .getParentConsultation()
-                                .getAppointment()
-                                != null
+                                : null
+                )
+                .parentAppointmentId(
+                        appointment
+                                .getParentConsultation() != null &&
+                                appointment
+                                        .getParentConsultation()
+                                        .getAppointment() != null
                                 ? appointment
                                 .getParentConsultation()
                                 .getAppointment()
                                 .getId()
-                                : null)
-                .message(followUp ? "Cita de seguimiento." : "Cita médica.")
+                                : null
+                )
+                .message(
+                        followUp
+                                ? "Cita de seguimiento."
+                                : "Cita médica."
+                )
                 .build();
     }
 

@@ -1,5 +1,11 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import {
+    useEffect,
+    useState
+} from "react";
+
+import {
+    useNavigate
+} from "react-router-dom";
 
 import MainLayout
     from "../../layouts/MainLayout";
@@ -8,125 +14,145 @@ import {
     getMyAppointments
 } from "../../api/appointmentApi";
 
+import AppointmentStatusBadge
+    from "../../components/AppointmentStatusBadge";
+
 import "./MyAppointments.css";
 
 function MyAppointments() {
-    const navigate = useNavigate();
+    const navigate =
+        useNavigate();
 
-    const [appointments, setAppointments] =
-        useState([]);
+    const [
+        appointments,
+        setAppointments
+    ] = useState([]);
 
-    const [statusFilter, setStatusFilter] =
-        useState("TODAS");
+    const [
+        statusFilter,
+        setStatusFilter
+    ] = useState("TODAS");
 
-    const [loading, setLoading] =
-        useState(true);
+    const [
+        loading,
+        setLoading
+    ] = useState(true);
 
-    const [errorMessage, setErrorMessage] =
-        useState("");
+    const [
+        errorMessage,
+        setErrorMessage
+    ] = useState("");
 
     useEffect(() => {
         loadAppointments();
     }, []);
 
-    const loadAppointments = async () => {
-        try {
-            setLoading(true);
-            setErrorMessage("");
+    /**
+     * Recupera las citas del paciente.
+     *
+     * Cada cita puede incluir:
+     *
+     * - status:
+     *   código técnico.
+     *
+     * - statusPresentation:
+     *   nombre, descripción y color configurados.
+     */
+    const loadAppointments =
+        async () => {
+            try {
+                setLoading(true);
+                setErrorMessage("");
 
-            const response =
-                await getMyAppointments();
+                const response =
+                    await getMyAppointments();
 
-            setAppointments(response.data);
+                setAppointments(
+                    Array.isArray(
+                        response.data
+                    )
+                        ? response.data
+                        : []
+                );
 
-        } catch (error) {
-            console.error(error);
+            } catch (error) {
+                console.error(
+                    "Error al cargar citas:",
+                    error
+                );
 
-            setErrorMessage(
-                error.response?.data?.message ||
-                "No fue posible cargar sus citas."
-            );
+                setErrorMessage(
+                    error.response
+                        ?.data
+                        ?.message ||
+                    "No fue posible cargar sus citas."
+                );
 
-        } finally {
-            setLoading(false);
-        }
-    };
+            } finally {
+                setLoading(false);
+            }
+        };
 
+    /**
+     * El filtro continúa utilizando el código
+     * técnico, no el nombre visual configurado.
+     */
     const filteredAppointments =
         statusFilter === "TODAS"
             ? appointments
             : appointments.filter(
                 appointment =>
-                    appointment.status === statusFilter
+                    appointment.status ===
+                    statusFilter
             );
 
-    const formatDateTime = (dateTime) => {
-        if (!dateTime) {
-            return "No disponible";
-        }
+    /**
+     * Convierte la fecha ISO del backend
+     * en una fecha legible.
+     */
+    const formatDateTime =
+        dateTime => {
+            if (!dateTime) {
+                return "No disponible";
+            }
 
-        return new Date(dateTime)
-            .toLocaleString(
-                "es-GT",
-                {
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric",
-                    hour: "2-digit",
-                    minute: "2-digit"
-                }
-            );
-    };
+            const parsedDate =
+                new Date(dateTime);
 
-    const getStatusLabel = (status) => {
-        const labels = {
-            PENDIENTE_DE_PAGO:
-                "Pendiente de pago",
+            if (
+                Number.isNaN(
+                    parsedDate.getTime()
+                )
+            ) {
+                return dateTime;
+            }
 
-            PAGADA:
-                "Pagada",
-
-            CONFIRMADA:
-                "Confirmada",
-
-            CANCELADA:
-                "Cancelada",
-
-            EXPIRADA:
-                "Expirada"
+            return parsedDate
+                .toLocaleString(
+                    "es-GT",
+                    {
+                        year:
+                            "numeric",
+                        month:
+                            "long",
+                        day:
+                            "numeric",
+                        hour:
+                            "2-digit",
+                        minute:
+                            "2-digit"
+                    }
+                );
         };
-
-        return labels[status] || status;
-    };
-
-    const getStatusClass = (status) => {
-        const classes = {
-            PENDIENTE_DE_PAGO:
-                "appointment-status pending",
-
-            PAGADA:
-                "appointment-status paid",
-
-            CONFIRMADA:
-                "appointment-status confirmed",
-
-            CANCELADA:
-                "appointment-status cancelled",
-
-            EXPIRADA:
-                "appointment-status expired"
-        };
-
-        return classes[status] ||
-            "appointment-status";
-    };
 
     return (
         <MainLayout>
             <div className="my-appointments-page">
                 <div className="appointments-header">
                     <div>
-                        <h1>Mis Citas</h1>
+                        <h1>
+                            Mis Citas
+                        </h1>
 
                         <p>
                             Consulte el estado de sus citas médicas.
@@ -147,17 +173,23 @@ function MyAppointments() {
                 </div>
 
                 <div className="appointments-toolbar">
-                    <label htmlFor="status-filter">
+                    <label
+                        htmlFor="status-filter"
+                    >
                         Filtrar por estado
                     </label>
 
                     <select
                         id="status-filter"
-                        value={statusFilter}
-                        onChange={(event) =>
-                            setStatusFilter(
-                                event.target.value
-                            )
+                        value={
+                            statusFilter
+                        }
+                        onChange={
+                            event =>
+                                setStatusFilter(
+                                    event.target
+                                        .value
+                                )
                         }
                     >
                         <option value="TODAS">
@@ -193,17 +225,19 @@ function MyAppointments() {
                 )}
 
                 {loading ? (
-                    <p>Cargando citas...</p>
+                    <p>
+                        Cargando citas...
+                    </p>
 
-                ) : filteredAppointments.length === 0 ? (
+                ) : filteredAppointments
+                    .length === 0 ? (
                     <div className="appointments-empty">
                         <h2>
                             No se encontraron citas
                         </h2>
 
                         <p>
-                            No tiene citas registradas con el
-                            estado seleccionado.
+                            No tiene citas registradas con el estado seleccionado.
                         </p>
 
                         <button
@@ -224,84 +258,116 @@ function MyAppointments() {
                         {filteredAppointments.map(
                             appointment => (
                                 <article
-                                    key={appointment.id}
+                                    key={
+                                        appointment.id
+                                    }
                                     className="appointment-card"
                                 >
                                     <div className="appointment-card-header">
                                         <span>
-                                            Cita #{appointment.id}
+                                            Cita #{
+                                                appointment.id
+                                            }
                                         </span>
 
-                                        <span
-                                            className={
-                                                getStatusClass(
-                                                    appointment.status
-                                                )
+                                        <AppointmentStatusBadge
+                                            status={
+                                                appointment
+                                                    .status
                                             }
-                                        >
-                                            {getStatusLabel(
-                                                appointment.status
-                                            )}
-                                        </span>
+                                            presentation={
+                                                appointment
+                                                    .statusPresentation
+                                            }
+                                        />
                                     </div>
 
                                     <div className="appointment-information">
                                         <p>
-                                            <span>Médico</span>
+                                            <span>
+                                                Médico
+                                            </span>
 
                                             <strong>
-                                                {appointment.doctorName}
-                                            </strong>
-                                        </p>
-
-                                        <p>
-                                            <span>Especialidad</span>
-
-                                            <strong>
-                                                {appointment.specialty}
-                                            </strong>
-                                        </p>
-
-                                        <p>
-                                            <span>Sucursal</span>
-
-                                            <strong>
-                                                {appointment.branch}
-                                            </strong>
-                                        </p>
-
-                                        <p>
-                                            <span>Fecha y hora</span>
-
-                                            <strong>
-                                                {formatDateTime(
+                                                {
                                                     appointment
-                                                        .appointmentDateTime
-                                                )}
+                                                        .doctorName
+                                                }
                                             </strong>
                                         </p>
 
                                         <p>
-                                            <span>Motivo</span>
+                                            <span>
+                                                Especialidad
+                                            </span>
 
                                             <strong>
-                                                {appointment.reason}
+                                                {
+                                                    appointment
+                                                        .specialty
+                                                }
+                                            </strong>
+                                        </p>
+
+                                        <p>
+                                            <span>
+                                                Sucursal
+                                            </span>
+
+                                            <strong>
+                                                {
+                                                    appointment
+                                                        .branch
+                                                }
+                                            </strong>
+                                        </p>
+
+                                        <p>
+                                            <span>
+                                                Fecha y hora
+                                            </span>
+
+                                            <strong>
+                                                {
+                                                    formatDateTime(
+                                                        appointment
+                                                            .appointmentDateTime
+                                                    )
+                                                }
+                                            </strong>
+                                        </p>
+
+                                        <p>
+                                            <span>
+                                                Motivo
+                                            </span>
+
+                                            <strong>
+                                                {
+                                                    appointment
+                                                        .reason
+                                                }
                                             </strong>
                                         </p>
                                     </div>
 
+                                    {/*
+                                     * La lógica funcional conserva
+                                     * el código técnico.
+                                     */}
                                     {appointment.status ===
                                         "PENDIENTE_DE_PAGO" && (
                                             <button
                                                 type="button"
                                                 className="btn btn-primary"
                                                 onClick={() => {
-                                                    sessionStorage.setItem(
-                                                        "pendingAppointment",
-                                                        JSON.stringify(
-                                                            appointment
-                                                        )
-                                                    );
+                                                    sessionStorage
+                                                        .setItem(
+                                                            "pendingAppointment",
+                                                            JSON.stringify(
+                                                                appointment
+                                                            )
+                                                        );
 
                                                     navigate(
                                                         `/payments/${appointment.id}`

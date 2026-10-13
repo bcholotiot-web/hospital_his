@@ -6,7 +6,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
@@ -18,11 +18,14 @@ import java.util.List;
 import org.springframework.http.HttpMethod;
 
 @Configuration
+@EnableMethodSecurity
 public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final CustomAccessDeniedHandler customAccessDeniedHandler;
 
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
+    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter, CustomAccessDeniedHandler customAccessDeniedHandler) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+        this.customAccessDeniedHandler = customAccessDeniedHandler;
     }
 
     @Bean
@@ -35,28 +38,84 @@ public class SecurityConfig {
         http.cors(cors -> {}).csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
 
-                        .requestMatchers("/api/auth/**")
+                        /*
+                         * Endpoints públicos de autenticación.
+                         */
+                        .requestMatchers(
+                                "/api/auth/login",
+                                "/api/auth/register",
+                                "/api/auth/verify-dpi"
+                        )
                         .permitAll()
+
+                        /*
+                        * Información de la sesión actual.
+                         */
+                        .requestMatchers("/api/auth/me")
+                        .authenticated()
 
                         .requestMatchers("/api/users/**")
                         .hasRole("ADMIN")
 
-                        .requestMatchers("/api/branches/**")
-                        .hasRole("ADMIN")
+                        /*
+                              * CU-14:
+                              * La URL exige autenticación.
+                              *
+                              * La operación específica se autoriza mediante
+                              * @PreAuthorize en cada controlador.
+                              */
+                        .requestMatchers(
+                                "/api/branches/**",
+                                "/api/specialties/**",
+                                "/api/roles/**",
+                                "/api/admin/branch-specialties/**",
+                                "/api/admin/laboratory-tests/**",
+                                "/api/admin/medications/**",
+                                "/api/admin/appointment-statuses/**",
+                                "/api/admin/permissions/**",
+                                "/api/admin/roles/*/permissions"
+                        )
+                        .authenticated()
 
-                        .requestMatchers("/api/specialties/**")
+
+
+                        /*
+                         * CU-14:
+                         * La autenticación es obligatoria.
+                         *
+                         * Los permisos concretos se verifican mediante
+                         * @PreAuthorize dentro de RolePermissionController.
+                         */
+                        .requestMatchers(
+                                "/api/admin/permissions/**",
+                                "/api/admin/roles/*/permissions"
+                        )
+                        .authenticated()
+
+                        /*
+                         * CU-14:
+                         * Mantenimiento administrativo del catálogo
+                         * de exámenes de laboratorio.
+                         */
+                        .requestMatchers("/api/admin/laboratory-tests/**")
                         .hasRole("ADMIN")
 
                         /*
-                         * CU-13:
-                         * Administración de especialidades disponibles
-                         * por sede.
+                         * CU-14:
+                         * Mantenimiento administrativo
+                         * del catálogo de medicamentos.
                          */
-                        .requestMatchers("/api/admin/branch-specialties/**")
+                        .requestMatchers("/api/admin/medications/**")
                         .hasRole("ADMIN")
 
-                        .requestMatchers("/api/roles/**")
+                        /*
+                         * CU-14:
+                         * Configuración administrativa y visual
+                         * de los estados técnicos de cita.
+                         */
+                        .requestMatchers("/api/admin/appointment-statuses/**")
                         .hasRole("ADMIN")
+
 
                         .requestMatchers("/api/appointments/**")
                         .hasRole("PACIENTE")
@@ -88,6 +147,11 @@ public class SecurityConfig {
 
                         .anyRequest()
                         .authenticated())
+                .exceptionHandling(exception ->
+                        exception.accessDeniedHandler(
+                                customAccessDeniedHandler
+                        )
+                )
                 .addFilterBefore(
                         jwtAuthenticationFilter,
                         UsernamePasswordAuthenticationFilter.class);

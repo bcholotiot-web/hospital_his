@@ -4,6 +4,9 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
+
+
 
 @Entity
 @Table(
@@ -91,9 +94,33 @@ public class Medication {
     private String presentation;
 
     /**
-     * Descripción opcional del medicamento.
+     * Unidad utilizada para controlar inventario
+     * y despacho del medicamento.
+     *
+     * Ejemplos:
+     *
+     * TABLETA
+     * CÁPSULA
+     * FRASCO
+     * AMPOLLA
+     * MILILITRO
+     *
+     * CU-14 establece que la unidad es obligatoria
+     * y admite un máximo de 50 caracteres.
      */
-    @Column(length = 1000)
+    @Column(
+            nullable = false,
+            length = 50
+    )
+    private String unit;
+
+    /**
+     * Descripción obligatoria del medicamento.
+     */
+    @Column(
+            nullable = false,
+            length = 1000
+    )
     private String description;
 
     /**
@@ -121,6 +148,46 @@ public class Medication {
      */
     @Column(nullable = false)
     private Boolean active;
+
+    /**
+     * Fecha de creación del medicamento.
+     */
+    @Column(
+            name = "created_at",
+            nullable = false,
+            updatable = false
+    )
+    private LocalDateTime createdAt;
+
+    /**
+     * Administrador que creó el medicamento.
+     */
+    @Column(
+            name = "created_by",
+            nullable = false,
+            updatable = false,
+            length = 100
+    )
+    private String createdBy;
+
+    /**
+     * Fecha de última actualización.
+     */
+    @Column(
+            name = "updated_at",
+            nullable = false
+    )
+    private LocalDateTime updatedAt;
+
+    /**
+     * Usuario que realizó la última modificación.
+     */
+    @Column(
+            name = "updated_by",
+            nullable = false,
+            length = 100
+    )
+    private String updatedBy;
 
     /**
      * Control de concurrencia optimista.

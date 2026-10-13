@@ -10,6 +10,7 @@ import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 import java.util.List;
 
@@ -34,6 +35,7 @@ public class PharmacyInventoryController {
      *
      * GET /api/pharmacy/inventory
      */
+    @PreAuthorize("hasAuthority('INVENTORY_READ')")
     @GetMapping
     public ResponseEntity<
             List<PharmacyInventoryResponse>
@@ -50,11 +52,38 @@ public class PharmacyInventoryController {
     }
 
     /**
+     * Lista inventarios activos e inactivos de la
+     * sucursal del usuario autenticado.
+     *
+     * GET /api/pharmacy/inventory/administration
+     */
+    @PreAuthorize(
+            "hasAuthority('INVENTORY_READ')"
+    )
+    @GetMapping("/administration")
+    public ResponseEntity<
+            List<PharmacyInventoryResponse>
+            >
+    getInventoryAdministration(
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(
+                pharmacyInventoryService
+                        .getMyBranchInventoryAdministration(
+                                authentication.getName()
+                        )
+        );
+    }
+
+
+    /**
      * Obtiene un registro específico.
      *
      * GET /api/pharmacy/inventory/{inventoryId}
      */
+    @PreAuthorize("hasAuthority('INVENTORY_READ')")
     @GetMapping("/{inventoryId}")
+
     public ResponseEntity<
             PharmacyInventoryResponse
             >
@@ -81,6 +110,7 @@ public class PharmacyInventoryController {
      * Coloca esta ruta antes de /{inventoryId}
      * para que el código sea más sencillo de leer.
      */
+    @PreAuthorize("hasAuthority('INVENTORY_READ')")
     @GetMapping("/alerts")
     public ResponseEntity<
             List<PharmacyInventoryResponse>
@@ -102,6 +132,7 @@ public class PharmacyInventoryController {
      *
      * POST /api/pharmacy/inventory
      */
+    @PreAuthorize("hasAuthority('INVENTORY_CREATE')")
     @PostMapping
     public ResponseEntity<
             PharmacyInventoryResponse
@@ -127,6 +158,7 @@ public class PharmacyInventoryController {
      *
      * PUT /api/pharmacy/inventory/{inventoryId}
      */
+    @PreAuthorize("hasAuthority('INVENTORY_UPDATE')")
     @PutMapping("/{inventoryId}")
     public ResponseEntity<
             PharmacyInventoryResponse
@@ -156,6 +188,7 @@ public class PharmacyInventoryController {
      *
      * PATCH /api/pharmacy/inventory/{inventoryId}/status
      */
+    @PreAuthorize("hasAuthority('INVENTORY_DELETE')")
     @PatchMapping("/{inventoryId}/status")
     public ResponseEntity<
             PharmacyInventoryResponse

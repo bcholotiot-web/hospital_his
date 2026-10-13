@@ -4,6 +4,12 @@ import lombok.*;
 
 import java.math.BigDecimal;
 
+/**
+ * Respuesta completa de un medicamento.
+ *
+ * Continúa siendo compatible con el modal médico
+ * utilizado para generar recetas.
+ */
 @Getter
 @Setter
 @NoArgsConstructor
@@ -23,6 +29,8 @@ public class MedicationResponse {
 
     private String presentation;
 
+    private String unit;
+
     private String description;
 
     private BigDecimal unitPrice;
@@ -30,4 +38,16 @@ public class MedicationResponse {
     private Boolean controlled;
 
     private Boolean active;
+
+    private String createdAt;
+
+    private String createdBy;
+
+    private String updatedAt;
+
+    private String updatedBy;
+
+    private Long version;
+
+    private String message;
 }

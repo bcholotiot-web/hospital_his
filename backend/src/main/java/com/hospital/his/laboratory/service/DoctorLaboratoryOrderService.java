@@ -611,6 +611,8 @@ public class DoctorLaboratoryOrderService {
                         test.getDefaultUnit()
                 )
                 .price(test.getPrice())
+                .active(test.getActive())
+                .version(test.getVersion())
                 .build();
     }
 

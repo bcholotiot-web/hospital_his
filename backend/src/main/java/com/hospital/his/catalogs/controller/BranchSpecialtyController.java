@@ -11,6 +11,7 @@ import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 import java.util.List;
 
@@ -37,6 +38,7 @@ public class BranchSpecialtyController {
      * Filtro opcional:
      * id
      */
+    @PreAuthorize("hasAuthority('BRANCH_SPECIALTY_READ')")
     @GetMapping
     public ResponseEntity<
             BranchSpecialtyPageResponse
@@ -74,6 +76,7 @@ public class BranchSpecialtyController {
     /**
      * Crea o reactiva una asignación.
      */
+    @PreAuthorize("hasAuthority('BRANCH_SPECIALTY_CREATE')")
     @PostMapping
     public ResponseEntity<
             BranchSpecialtyResponse
@@ -98,6 +101,7 @@ public class BranchSpecialtyController {
     /**
      * Elimina lógicamente una asignación.
      */
+    @PreAuthorize("hasAuthority('BRANCH_SPECIALTY_DELETE')")
     @DeleteMapping("/{assignmentId}")
     public ResponseEntity<
             BranchSpecialtyResponse
@@ -121,6 +125,7 @@ public class BranchSpecialtyController {
     /**
      * Devuelve sedes activas.
      */
+    @PreAuthorize("hasAuthority('BRANCH_SPECIALTY_READ')")
     @GetMapping("/options/branches")
     public ResponseEntity<
             List<BranchSpecialtyOptionResponse>
@@ -140,6 +145,7 @@ public class BranchSpecialtyController {
     /**
      * Devuelve especialidades activas.
      */
+    @PreAuthorize("hasAuthority('BRANCH_SPECIALTY_READ')")
     @GetMapping("/options/specialties")
     public ResponseEntity<
             List<BranchSpecialtyOptionResponse>

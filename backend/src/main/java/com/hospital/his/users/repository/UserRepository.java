@@ -110,4 +110,30 @@ public interface UserRepository
     findByBranch_IdAndSpecialtyIsNotNullAndActiveTrue(
             Long branchId
     );
+
+    /**
+     * Cuenta todos los usuarios asociados con un rol,
+     * incluyendo usuarios inactivos.
+     */
+    long countByRole_Id(
+            Long roleId
+    );
+
+    /**
+     * Cuenta usuarios activos asociados con un rol.
+     *
+     * Un rol con usuarios activos no podrá
+     * desactivarse.
+     */
+    long countByRole_IdAndActiveTrue(
+            Long roleId
+    );
+
+    /**
+     * Comprueba rápidamente si el rol tiene
+     * usuarios activos.
+     */
+    boolean existsByRole_IdAndActiveTrue(
+            Long roleId
+    );
 }

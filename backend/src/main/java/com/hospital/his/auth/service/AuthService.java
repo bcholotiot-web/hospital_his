@@ -29,14 +29,20 @@ import com.hospital.his.security.jwt.JwtService;
 import com.hospital.his.auth.dto.VerifyDpiRequest;
 import com.hospital.his.auth.dto.VerifyDpiResponse;
 import com.hospital.his.notifications.service.EmailService;
+import com.hospital.his.auth.dto.AuthenticatedUserResponse;
+import com.hospital.his.security.UserAuthorityService;
+
+
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 
 import java.time.LocalDateTime;
 import java.util.Optional;
+import java.util.List;
 
 
 @Service
@@ -49,6 +55,11 @@ public class AuthService {
     private final AuditService auditService;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    /**
+     * Recupera las autoridades actuales desde
+     * PostgreSQL.
+     */
+    private final UserAuthorityService userAuthorityService;
     private final EmailService emailService;
     @Value("${security.login.max-attempts:3}")
     private int maxLoginAttempts;
@@ -62,7 +73,7 @@ public class AuthService {
             PatientRepository patientRepository,
             AuditService auditService,
             PasswordEncoder passwordEncoder,
-            JwtService jwtService,
+            JwtService jwtService, UserAuthorityService userAuthorityService,
             EmailService emailService){
 
         this.userRepository = userRepository;
@@ -71,6 +82,7 @@ public class AuthService {
         this.auditService = auditService;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
+        this.userAuthorityService = userAuthorityService;
         this.emailService = emailService;
     }
 
@@ -398,6 +410,116 @@ public class AuthService {
     }
 
     /**
+     * Devuelve la información actual de la sesión.
+     *
+     * Los permisos no se obtienen del contenido del JWT.
+     * Se consultan desde PostgreSQL para reflejar
+     * inmediatamente asignaciones y revocaciones.
+     */
+    public AuthenticatedUserResponse getAuthenticatedUser(String username) {
+        if (
+                username == null ||
+                        username.isBlank()
+        ) {
+            throw new RuntimeException(
+                    "No se pudo identificar al usuario autenticado."
+            );
+        }
+
+        User user =
+                userRepository
+                        .findByUsername(
+                                username
+                        )
+                        .orElseThrow(
+                                () -> new RuntimeException(
+                                        "Usuario autenticado no encontrado."
+                                )
+                        );
+
+        if (
+                !Boolean.TRUE.equals(
+                        user.getActive()
+                )
+        ) {
+            throw new RuntimeException(
+                    "La cuenta del usuario se encuentra inactiva."
+            );
+        }
+
+        if (
+                user.getRole() == null ||
+                        !Boolean.TRUE.equals(
+                                user.getRole().getActive()
+                        )
+        ) {
+            throw new RuntimeException(
+                    "El usuario no tiene un rol activo."
+            );
+        }
+
+        /*
+         * UserAuthorityService ya valida:
+         *
+         * - Usuario activo.
+         * - Rol activo.
+         * - Cuenta no bloqueada.
+         * - Permisos activos.
+         * - Asignaciones activas.
+         */
+        List<String> authorities =
+                userAuthorityService
+                        .getAuthorities(
+                                username
+                        )
+                        .stream()
+                        .map(
+                                SimpleGrantedAuthority
+                                        ::getAuthority
+                        )
+                        .distinct()
+                        .sorted()
+                        .toList();
+
+        return AuthenticatedUserResponse
+                .builder()
+                .userId(
+                        user.getId()
+                )
+                .username(
+                        user.getUsername()
+                )
+                .fullName(
+                        user.getFullName()
+                )
+                .roleId(
+                        user.getRole()
+                                .getId()
+                )
+                .role(
+                        user.getRole()
+                                .getName()
+                )
+                .branchId(
+                        user.getBranch() != null
+                                ? user.getBranch()
+                                .getId()
+                                : null
+                )
+                .branchName(
+                        user.getBranch() != null
+                                ? user.getBranch()
+                                .getName()
+                                : null
+                )
+                .authorities(
+                        authorities
+                )
+                .build();
+    }
+
+
+    /**
      * CU-00: Verificar el registro de una persona antes
      * de permitir el agendamiento de una cita.
      *
@@ -415,6 +537,7 @@ public class AuthService {
      * INACTIVE:
      * El DPI pertenece a una cuenta inactiva.
      */
+
     public VerifyDpiResponse verifyDpi(VerifyDpiRequest request) {
         /*
          * Aplicar RN-GLOBAL-001.

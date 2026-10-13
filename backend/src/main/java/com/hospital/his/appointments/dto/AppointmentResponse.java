@@ -29,6 +29,22 @@ public class AppointmentResponse {
 
     private String status;
 
+    /**
+     * Presentación visual del estado técnico.
+     *
+     * El campo status conserva el código utilizado
+     * por la máquina de estados.
+     *
+     * Este objeto aporta:
+     *
+     * - Nombre visible.
+     * - Descripción.
+     * - Color.
+     * - Orden.
+     * - Indicador de configuración.
+     */
+    private AppointmentStatusPresentationResponse statusPresentation;
+
     private String reservationExpiresAt;
 
     /**

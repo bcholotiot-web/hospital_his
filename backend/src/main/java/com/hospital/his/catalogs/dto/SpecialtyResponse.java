@@ -1,6 +1,10 @@
 package com.hospital.his.catalogs.dto;
+
 import lombok.*;
 
+/**
+ * Respuesta completa del catálogo de especialidades.
+ */
 @Getter
 @Setter
 @NoArgsConstructor
@@ -15,4 +19,16 @@ public class SpecialtyResponse {
     private String description;
 
     private Boolean active;
+
+    private String createdAt;
+
+    private String createdBy;
+
+    private String updatedAt;
+
+    private String updatedBy;
+
+    private Long version;
+
+    private String message;
 }

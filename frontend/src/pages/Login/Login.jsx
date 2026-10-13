@@ -1,14 +1,20 @@
 import { useState } from "react";
 import { login } from "../../api/authApi";
 import { Link, useNavigate, useLocation } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
 
 import "./Login.css";
 import "../../styles/ui.css";
 
 function Login() {
-    //const [username, setUsername] = useState("");
-    //const [password, setPassword] = useState("");
-    //const navigate = useNavigate();
+
+    /**
+ * startSession guarda el token y consulta
+ * inmediatamente GET /api/auth/me.
+ */
+    const {
+        startSession
+    } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
     const usernameFromVerification = location.state?.username || "";
@@ -249,27 +255,26 @@ function Login() {
             }
 
             /*
-             * Guardar información de la sesión.
+             * Guardar el token y cargar la información
+             * completa de la sesión desde /api/auth/me.
+             *
+             * Esta llamada recupera:
+             *
+             * - Usuario.
+             * - Rol.
+             * - Sucursal.
+             * - Autoridades y permisos.
              */
-            localStorage.setItem(
-                "token",
-                loginData.token
-            );
+            const sessionUser =
+                await startSession(
+                    loginData
+                );
 
-            localStorage.setItem(
-                "role",
-                loginData.role || ""
-            );
-
-            localStorage.setItem(
-                "userId",
-                String(loginData.userId)
-            );
-
-            localStorage.setItem(
-                "fullName",
-                loginData.fullName || ""
-            );
+            if (!sessionUser) {
+                throw new Error(
+                    "No fue posible cargar la sesión autenticada."
+                );
+            }
 
             /*
              * Limpiar cualquier mensaje anterior.
@@ -282,9 +287,12 @@ function Login() {
              * replace evita regresar al login con el botón
              * Atrás del navegador después de autenticarse.
              */
-            navigate("/dashboard", {
-                replace: true
-            });
+            navigate(
+                redirectTo,
+                {
+                    replace: true
+                }
+            );
         } catch (error) {
             /*
              * Si existe error.response, el backend sí respondió.

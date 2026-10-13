@@ -2,12 +2,16 @@ package com.hospital.his.medications.repository;
 
 import com.hospital.his.medications.entity.Medication;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 import java.util.List;
 import java.util.Optional;
 
 public interface MedicationRepository
-        extends JpaRepository<Medication, Long> {
+        extends JpaRepository<Medication, Long>,
+        JpaSpecificationExecutor<Medication> {
 
     /**
      * Devuelve solamente medicamentos activos,
@@ -75,4 +79,52 @@ public interface MedicationRepository
     findByActiveTrueAndActiveIngredientIgnoreCaseOrderByNameAsc(
             String activeIngredient
     );
+
+    /**
+     * Comprueba duplicados de código durante
+     * una actualización.
+     */
+    boolean existsByCodeIgnoreCaseAndIdNot(
+            String code,
+            Long medicationId
+    );
+
+    /**
+     * Listado administrativo completo.
+     */
+    Page<Medication>
+    findAllByOrderByNameAsc(
+            Pageable pageable
+    );
+
+    /**
+     * Búsqueda administrativa por código, nombre
+     * o principio activo.
+     */
+    Page<Medication>
+    findByCodeContainingIgnoreCaseOrNameContainingIgnoreCaseOrActiveIngredientContainingIgnoreCaseOrderByNameAsc(
+            String code,
+            String name,
+            String activeIngredient,
+            Pageable pageable
+    );
+
+    /**
+     * Filtro administrativo por estado.
+     */
+    Page<Medication>
+    findByActiveOrderByNameAsc(
+            Boolean active,
+            Pageable pageable
+    );
+
+    /**
+     * Filtro por medicamento controlado.
+     */
+    Page<Medication>
+    findByControlledOrderByNameAsc(
+            Boolean controlled,
+            Pageable pageable
+    );
+
 }

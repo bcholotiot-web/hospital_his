@@ -7,12 +7,17 @@ import com.hospital.his.auth.dto.RegisterResponse;
 import com.hospital.his.auth.service.AuthService;
 import com.hospital.his.auth.dto.VerifyDpiRequest;
 import com.hospital.his.auth.dto.VerifyDpiResponse;
+import com.hospital.his.auth.dto.AuthenticatedUserResponse;
+
 import jakarta.validation.Valid;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.GetMapping;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -44,6 +49,34 @@ public class AuthController {
                 authService.login(request);
 
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Devuelve los datos y permisos efectivos
+     * de la sesión autenticada.
+     *
+     * GET /api/auth/me
+     */
+    @GetMapping("/me")
+    public ResponseEntity<AuthenticatedUserResponse>
+    getAuthenticatedUser(
+            Authentication authentication
+    ) {
+        if (
+                authentication == null ||
+                        !authentication.isAuthenticated()
+        ) {
+            throw new RuntimeException(
+                    "No existe una sesión autenticada."
+            );
+        }
+
+        return ResponseEntity.ok(
+                authService
+                        .getAuthenticatedUser(
+                                authentication.getName()
+                        )
+        );
     }
 
     /**

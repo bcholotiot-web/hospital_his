@@ -8,6 +8,7 @@ import com.hospital.his.pharmacy.dto.PrescriptionDispensationDetailResponse;
 import com.hospital.his.pharmacy.dto.PrescriptionDispensationItemResponse;
 import com.hospital.his.pharmacy.dto.PrescriptionDispensationSearchResponse;
 import com.hospital.his.pharmacy.entity.PharmacyInventory;
+import com.hospital.his.pharmacy.entity.InventoryMovementType;
 import com.hospital.his.pharmacy.repository.MedicationDispensationItemRepository;
 import com.hospital.his.pharmacy.repository.MedicationDispensationRepository;
 import com.hospital.his.pharmacy.repository.PharmacyInventoryRepository;
@@ -88,6 +89,13 @@ public class MedicationDispensationService {
     private final AuditService auditService;
 
     /**
+     * Registra cada descuento de inventario producido
+     * durante un despacho confirmado.
+     */
+    private final InventoryMovementService
+            inventoryMovementService;
+
+    /**
      * Código monetario utilizado en Farmacia.
      */
     private static final String CURRENCY =
@@ -115,7 +123,7 @@ public class MedicationDispensationService {
             MedicationDispensationItemRepository
                     medicationDispensationItemRepository,
             UserRepository userRepository,
-            AuditService auditService,
+            AuditService auditService, InventoryMovementService inventoryMovementService,
             PaymentGateway paymentGateway,
             MedicationRepository medicationRepository, PrescriptionDeclineEventRepository prescriptionDeclineEventRepository
     ) {
@@ -126,6 +134,7 @@ public class MedicationDispensationService {
         this.medicationDispensationItemRepository = medicationDispensationItemRepository;
         this.userRepository = userRepository;
         this.auditService = auditService;
+        this.inventoryMovementService = inventoryMovementService;
         this.paymentGateway = paymentGateway;
         this.medicationRepository = medicationRepository;
         this.prescriptionDeclineEventRepository = prescriptionDeclineEventRepository;
@@ -873,8 +882,37 @@ public class MedicationDispensationService {
          * FASE 2:
          *
          * El pago fue aprobado.
-         * Ahora sí se aplican los descuentos y se crean
-         * los detalles del despacho.
+         *
+         * Antes de descontar inventario, guardar la cabecera
+         * para obtener el ID real del despacho.
+         *
+         * Este ID será utilizado como referenceId en
+         * inventory_movements.
+         *
+         * La transacción continúa abierta. Si posteriormente
+         * falla el inventario, el movimiento o la receta,
+         * también se revierte esta inserción.
+         */
+        try {
+            dispensation =
+                    medicationDispensationRepository
+                            .saveAndFlush(
+                                    dispensation
+                            );
+
+        } catch (
+                DataIntegrityViolationException exception
+        ) {
+            throw new RuntimeException(
+                    "No fue posible iniciar el despacho. "
+                            + "La solicitud puede haber sido "
+                            + "procesada anteriormente."
+            );
+        }
+
+        /*
+         * Aplicar los descuentos, actualizar la receta,
+         * crear los detalles y registrar movimientos.
          */
         applyApprovedDispensationItems(
                 dispensation,
@@ -2259,6 +2297,13 @@ public class MedicationDispensationService {
          * provoca rollback de toda la operación.
          */
         try {
+            /*
+             * Guardar primero los inventarios actualizados.
+             *
+             * Así los movimientos se registran únicamente
+             * después de comprobar que el descuento pudo
+             * persistirse correctamente.
+             */
             pharmacyInventoryRepository
                     .saveAllAndFlush(
                             preparedItems.stream()
@@ -2269,6 +2314,10 @@ public class MedicationDispensationService {
                                     .toList()
                     );
 
+            /*
+             * Guardar las cantidades acumuladas
+             * despachadas de la receta.
+             */
             prescriptionItemRepository
                     .saveAllAndFlush(
                             preparedItems.stream()
@@ -2278,6 +2327,55 @@ public class MedicationDispensationService {
                                     )
                                     .toList()
                     );
+
+            if (dispensation.getId() == null) {
+                throw new RuntimeException(
+                        "No fue posible identificar el despacho "
+                                + "para registrar los movimientos."
+                );
+            }
+
+            /*
+             * Registrar un movimiento DESPACHO por cada
+             * medicamento entregado.
+             *
+             * Cada movimiento conserva:
+             *
+             * - Stock anterior.
+             * - Cantidad entregada.
+             * - Stock resultante.
+             * - Número de despacho.
+             * - Número de receta.
+             * - ID del despacho.
+             * - Usuario de farmacia.
+             */
+            for (
+                    PreparedDispensationItem prepared
+                    : preparedItems
+            ) {
+                String movementReason =
+                        "Despacho "
+                                + dispensation
+                                .getDispensationNumber()
+                                + " asociado con la receta "
+                                + dispensation
+                                .getPrescription()
+                                .getPrescriptionNumber()
+                                + ".";
+
+                inventoryMovementService
+                        .registerMovement(
+                                prepared.inventory(),
+                                InventoryMovementType.DESPACHO,
+                                prepared.stockBefore(),
+                                prepared.dispensedQuantity(),
+                                prepared.stockAfter(),
+                                movementReason,
+                                "DISPENSATION",
+                                dispensation.getId(),
+                                pharmacyUser.getUsername()
+                        );
+            }
 
         } catch (
                 OptimisticLockingFailureException exception

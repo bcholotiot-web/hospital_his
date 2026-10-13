@@ -3,7 +3,6 @@ package com.hospital.his.users.service;
 import com.hospital.his.users.dto.UpdateUserRequest;
 import com.hospital.his.users.repository.UserRepository;
 import com.hospital.his.users.repository.RoleRepository;
-import org.springframework.context.annotation.Import;
 import org.springframework.stereotype.Service;
 
 import com.hospital.his.audit.service.AuditService;
@@ -17,8 +16,6 @@ import com.hospital.his.catalogs.repository.BranchRepository;
 import com.hospital.his.catalogs.repository.SpecialtyRepository;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-
 import com.hospital.his.users.dto.RoleResponse;
 import java.util.List;
 import java.text.Normalizer;
@@ -59,7 +56,16 @@ public class UserService {
         }
         validateCreateUserRequest(request);
 
-        Role role = roleRepository.findById(request.getRoleId()).orElseThrow(()->new RuntimeException("Rol no encontrado"));
+        Role role =
+                roleRepository
+                        .findByIdAndActiveTrue(
+                                request.getRoleId()
+                        )
+                        .orElseThrow(
+                                () -> new RuntimeException(
+                                        "El rol no existe o se encuentra inactivo."
+                                )
+                        );
 
         User user = User.builder()
                 .fullName(request.getFullName())
@@ -247,9 +253,6 @@ public class UserService {
                 .roleId(user.getRole() != null ? user.getRole().getId() : null)
                 .branchId(user.getBranch() != null ? user.getBranch().getId() : null)
                 .specialtyId(user.getSpecialty() != null ? user.getSpecialty().getId() : null)
-                .roleId(user.getRole() != null ? user.getRole().getId() : null)
-                .branchId(user.getBranch() != null ? user.getBranch().getId() : null)
-                .specialtyId(user.getSpecialty() != null ? user.getSpecialty().getId() : null)
                 .build();
     }
 
@@ -269,13 +272,16 @@ public class UserService {
         /*
          * Validar que el rol seleccionado exista.
          */
-        Role role = roleRepository
-                .findById(request.getRoleId())
-                .orElseThrow(
-                        () -> new RuntimeException(
-                                "Rol no encontrado."
+        Role role =
+                roleRepository
+                        .findByIdAndActiveTrue(
+                                request.getRoleId()
                         )
-                );
+                        .orElseThrow(
+                                () -> new RuntimeException(
+                                        "El rol no existe o se encuentra inactivo."
+                                )
+                        );
 
         /*
          * Buscar la sucursal únicamente cuando se recibió
@@ -481,7 +487,8 @@ public class UserService {
     }
 
     public List<RoleResponse> getRoles() {
-        return roleRepository.findAll()
+        return roleRepository
+                .findByActiveTrueOrderByNameAsc()
                 .stream()
                 .map(role -> RoleResponse.builder()
                         .id(role.getId())

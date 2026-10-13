@@ -37,6 +37,15 @@ public class FollowUpAppointmentResponse {
 
     private String status;
 
+    /**
+     * Presentación visual del estado de la cita
+     * de seguimiento.
+     *
+     * status conserva el código técnico.
+     */
+    private AppointmentStatusPresentationResponse statusPresentation;
+
+
     private String origin;
 
     private Boolean followUp;

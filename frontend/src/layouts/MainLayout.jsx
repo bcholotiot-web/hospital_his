@@ -1,47 +1,83 @@
-import { Link, useNavigate } from "react-router-dom";
+import {
+    Link,
+    useNavigate
+} from "react-router-dom";
+
+import {
+    useAuth
+} from "../context/AuthContext";
+
 import "./MainLayout.css";
 
-function MainLayout({ children }) {
-    const navigate = useNavigate();
+function MainLayout({
+    children
+}) {
+    const navigate =
+        useNavigate();
 
-    const role = localStorage.getItem("role");
-    const normalizedRole = normalizeRole(role);
+    const {
+        loading,
+        logout,
+        hasRole,
+        hasPermission
+    } = useAuth();
 
+    /**
+     * Roles operativos.
+     */
     const isAdmin =
-        normalizedRole === "ADMIN" ||
-        normalizedRole === "ADMINISTRADOR";
+        hasRole("ADMIN") ||
+        hasRole("ADMINISTRADOR");
 
     const isPatient =
-        normalizedRole === "PACIENTE";
+        hasRole("PACIENTE");
 
     const isReceptionist =
-        normalizedRole === "RECEPCIONISTA";
+        hasRole("RECEPCIONISTA");
 
     const isCashier =
-        normalizedRole === "CAJERO";
+        hasRole("CAJERO");
 
     const isNursing =
-        normalizedRole === "ENFERMERIA";
+        hasRole("ENFERMERIA");
 
     const isDoctor =
-        normalizedRole === "MEDICO";
+        hasRole("MEDICO");
 
     const isLaboratory =
-        normalizedRole === "LABORATORIO";
+        hasRole("LABORATORIO");
 
     const isPharmacy =
-        normalizedRole === "FARMACIA";
+        hasRole("FARMACIA");
 
+    /**
+     * Cerrar sesión utilizando AuthContext.
+     */
     const handleLogout = () => {
-        localStorage.removeItem("token");
-        localStorage.removeItem("role");
-        localStorage.removeItem("userId");
-        localStorage.removeItem("fullName");
+        logout();
 
-        navigate("/login", {
-            replace: true
-        });
+        navigate(
+            "/login",
+            {
+                replace: true
+            }
+        );
     };
+
+    if (loading) {
+        return (
+            <div
+                style={{
+                    minHeight: "100vh",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center"
+                }}
+            >
+                Cargando sesión...
+            </div>
+        );
+    }
 
     return (
         <div className="main-layout">
@@ -58,42 +94,141 @@ function MainLayout({ children }) {
                         Dashboard
                     </Link>
 
+                    {/*
+                     * Administración de usuarios.
+                     *
+                     * Todavía se conserva por rol ADMIN
+                     * porque no hemos creado permisos
+                     * USER_READ, USER_CREATE, etc.
+                     */}
                     {isAdmin && (
-                        <>
-                            <Link
-                                to="/users"
-                                className="main-sidebar-link"
-                            >
-                                Usuarios
-                            </Link>
+                        <Link
+                            to="/users"
+                            className="main-sidebar-link"
+                        >
+                            Usuarios
+                        </Link>
+                    )}
 
+                    {/*
+                     * Catálogo administrativo
+                     * de sucursales.
+                     */}
+                    {hasPermission(
+                        "BRANCH_READ"
+                    ) && (
                             <Link
                                 to="/branches"
                                 className="main-sidebar-link"
                             >
                                 Sucursales
                             </Link>
+                        )}
 
+                    {/*
+                     * Catálogo administrativo
+                     * de especialidades.
+                     */}
+                    {hasPermission(
+                        "SPECIALTY_READ"
+                    ) && (
                             <Link
                                 to="/specialties"
                                 className="main-sidebar-link"
                             >
                                 Especialidades
                             </Link>
+                        )}
 
-                            {/*
-         * CU-13:
-         * Configuración de especialidades
-         * disponibles en cada sede.
-         */}
+                    {/*
+                     * CU-13:
+                     * Especialidades disponibles
+                     * por sucursal.
+                     */}
+                    {hasPermission(
+                        "BRANCH_SPECIALTY_READ"
+                    ) && (
                             <Link
                                 to="/branch-specialties"
                                 className="main-sidebar-link"
                             >
                                 Especialidades por Sede
                             </Link>
-                        </>
-                    )}
+                        )}
+
+                    {/*
+                     * Administración de roles.
+                     */}
+                    {hasPermission(
+                        "ROLE_READ"
+                    ) && (
+                            <Link
+                                to="/roles"
+                                className="main-sidebar-link"
+                            >
+                                Roles
+                            </Link>
+                        )}
+
+                    {/*
+                     * Administración de permisos
+                     * asignados a roles.
+                     */}
+                    {hasPermission(
+                        "PERMISSION_READ"
+                    ) && (
+                            <Link
+                                to="/role-permissions"
+                                className="main-sidebar-link"
+                            >
+                                Permisos por Rol
+                            </Link>
+                        )}
+
+                    {/*
+                     * Catálogo administrativo
+                     * de exámenes.
+                     */}
+                    {hasPermission(
+                        "LABORATORY_TEST_READ"
+                    ) && (
+                            <Link
+                                to="/admin/laboratory-tests"
+                                className="main-sidebar-link"
+                            >
+                                Exámenes de Laboratorio
+                            </Link>
+                        )}
+
+                    {/*
+                     * Catálogo administrativo
+                     * de medicamentos.
+                     */}
+                    {hasPermission(
+                        "MEDICATION_READ"
+                    ) && (
+                            <Link
+                                to="/admin/medications"
+                                className="main-sidebar-link"
+                            >
+                                Medicamentos
+                            </Link>
+                        )}
+
+                    {/*
+                     * Configuración visual de los
+                     * estados técnicos de cita.
+                     */}
+                    {hasPermission(
+                        "APPOINTMENT_STATUS_READ"
+                    ) && (
+                            <Link
+                                to="/admin/appointment-statuses"
+                                className="main-sidebar-link"
+                            >
+                                Estados de Cita
+                            </Link>
+                        )}
 
                     {isPatient && (
                         <>
@@ -123,12 +258,21 @@ function MainLayout({ children }) {
                     )}
 
                     {isCashier && (
-                        <Link
-                            to="/cashier"
-                            className="main-sidebar-link"
-                        >
-                            Cobro en Caja
-                        </Link>
+                        <>
+                            <Link
+                                to="/cashier"
+                                className="main-sidebar-link"
+                            >
+                                Cobro en Caja
+                            </Link>
+
+                            <Link
+                                to="/cashier/laboratory-payments"
+                                className="main-sidebar-link"
+                            >
+                                Cobros de Laboratorio
+                            </Link>
+                        </>
                     )}
 
                     {isNursing && (
@@ -160,12 +304,25 @@ function MainLayout({ children }) {
 
                     {isPharmacy && (
                         <>
-                            <Link
-                                to="/pharmacy"
-                                className="main-sidebar-link"
-                            >
-                                Panel de Farmacia
-                            </Link>
+                            {hasPermission(
+                                "INVENTORY_READ"
+                            ) && (
+                                    <>
+                                        <Link
+                                            to="/pharmacy"
+                                            className="main-sidebar-link"
+                                        >
+                                            Panel de Farmacia
+                                        </Link>
+
+                                        <Link
+                                            to="/pharmacy/inventory"
+                                            className="main-sidebar-link"
+                                        >
+                                            Inventario
+                                        </Link>
+                                    </>
+                                )}
 
                             <Link
                                 to="/pharmacy/dispensations"
@@ -173,6 +330,17 @@ function MainLayout({ children }) {
                             >
                                 Despacho de Medicamentos
                             </Link>
+
+                            {hasPermission(
+                                "INVENTORY_MOVEMENT_READ"
+                            ) && (
+                                    <Link
+                                        to="/pharmacy/inventory-movements"
+                                        className="main-sidebar-link"
+                                    >
+                                        Movimientos de Inventario
+                                    </Link>
+                                )}
                         </>
                     )}
                 </nav>
@@ -181,7 +349,9 @@ function MainLayout({ children }) {
                     <button
                         type="button"
                         className="logout-button"
-                        onClick={handleLogout}
+                        onClick={
+                            handleLogout
+                        }
                     >
                         Cerrar Sesión
                     </button>
@@ -193,25 +363,6 @@ function MainLayout({ children }) {
             </main>
         </div>
     );
-}
-
-/**
- * Normaliza el nombre del rol almacenado
- * después del login.
- */
-function normalizeRole(value) {
-    if (!value) {
-        return "";
-    }
-
-    return String(value)
-        .normalize("NFD")
-        .replace(
-            /[\u0300-\u036f]/g,
-            ""
-        )
-        .trim()
-        .toUpperCase();
 }
 
 export default MainLayout;

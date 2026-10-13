@@ -5,6 +5,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
+import org.jspecify.annotations.NonNull;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -12,75 +13,163 @@ import java.io.IOException;
 
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
-import java.text.Normalizer;
-import java.util.Collections;
-import java.util.Locale;
-import java.util.List;
+import com.hospital.his.security.UserAuthorityService;
+
 
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter{
     private final JwtService jwtService;
+    /**
+     * Recupera el rol y los permisos actuales
+     * desde PostgreSQL.
+     */
+    private final UserAuthorityService
+            userAuthorityService;
 
-    public JwtAuthenticationFilter(JwtService jwtService){
+    public JwtAuthenticationFilter(JwtService jwtService, UserAuthorityService userAuthorityService){
         this.jwtService = jwtService;
+        this.userAuthorityService = userAuthorityService;
     }
+
 
     @Override
-    protected void doFilterInternal(
-            HttpServletRequest request,
-            HttpServletResponse response,
-            FilterChain filterChain)
-            throws ServletException, IOException {
+    protected void doFilterInternal(@NonNull HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
 
-        String authHeader = request.getHeader("Authorization");
+        String authHeader =
+                request.getHeader(
+                        "Authorization"
+                );
 
-        if (authHeader == null ||!authHeader.startsWith("Bearer ")) {
-            filterChain.doFilter(request, response);
+        /*
+         * Si la petición no contiene Bearer Token,
+         * continuar. SecurityConfig decidirá si la
+         * ruta permite acceso anónimo.
+         */
+        if (
+                authHeader == null ||
+                        !authHeader.startsWith(
+                                "Bearer "
+                        )
+        ) {
+            filterChain.doFilter(
+                    request,
+                    response
+            );
+
             return;
         }
 
+        String token =
+                authHeader.substring(7);
 
-
-
-
-        String token = authHeader.substring(7);
-
+        /*
+         * Validar firma y fecha de vencimiento.
+         */
         if (!jwtService.isTokenValid(token)) {
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            writeUnauthorizedResponse(
+                    response,
+                    "El token no es válido o ha expirado."
+            );
+
             return;
         }
 
-        String username = jwtService.extractUsername(token);
-        String role = jwtService.extractRole(token);
-        String normalizedRole = normalizeRole(role);
-        List<SimpleGrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("ROLE_" + normalizedRole));
-        UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(username, null, authorities);
+        try {
+            String username =
+                    jwtService.extractUsername(
+                            token
+                    );
 
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-        filterChain.doFilter(request, response);
+            /*
+             * Evitar reemplazar una autenticación
+             * previamente establecida.
+             */
+            if (
+                    SecurityContextHolder
+                            .getContext()
+                            .getAuthentication()
+                            == null
+            ) {
+                var authorities =
+                        userAuthorityService
+                                .getAuthorities(
+                                        username
+                                );
+
+                UsernamePasswordAuthenticationToken
+                        authentication =
+                        new UsernamePasswordAuthenticationToken(
+                                username,
+                                null,
+                                authorities
+                        );
+
+                SecurityContextHolder
+                        .getContext()
+                        .setAuthentication(
+                                authentication
+                        );
+            }
+
+            filterChain.doFilter(
+                    request,
+                    response
+            );
+
+        } catch (RuntimeException exception) {
+            SecurityContextHolder
+                    .clearContext();
+
+            writeUnauthorizedResponse(
+                    response,
+                    "La sesión no es válida o la cuenta no tiene acceso."
+            );
+        }
     }
 
-    private String normalizeRole(String role) {
-        if (role == null || role.isBlank()) {
-            return "";
+
+    /**
+     * Escribe una respuesta JSON segura para errores
+     * de autenticación ocurridos dentro del filtro.
+     */
+    private void writeUnauthorizedResponse(
+            HttpServletResponse response,
+            String message
+    ) throws IOException {
+
+        if (response.isCommitted()) {
+            return;
         }
 
-        String normalizedRole =
-                Normalizer.normalize(
-                        role.trim(),
-                        Normalizer.Form.NFD
-                );
+        response.setStatus(
+                HttpServletResponse.SC_UNAUTHORIZED
+        );
 
-        normalizedRole =
-                normalizedRole.replaceAll(
-                        "\\p{M}",
-                        ""
-                );
+        response.setContentType(
+                "application/json"
+        );
 
-        return normalizedRole.toUpperCase(
-                Locale.ROOT
+        response.setCharacterEncoding(
+                "UTF-8"
+        );
+
+        String safeMessage =
+                message != null
+                        ? message.replace(
+                        "\"",
+                        "\\\""
+                )
+                        : "No autorizado.";
+
+        response.getWriter().write(
+                "{"
+                        + "\"status\":401,"
+                        + "\"error\":\"UNAUTHORIZED\","
+                        + "\"message\":\""
+                        + safeMessage
+                        + "\""
+                        + "}"
         );
     }
 

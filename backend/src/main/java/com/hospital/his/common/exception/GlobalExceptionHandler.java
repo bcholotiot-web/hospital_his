@@ -7,6 +7,9 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
@@ -88,6 +91,77 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
+                .body(response);
+    }
+
+    /**
+     * Maneja solicitudes realizadas con un método HTTP
+     * no permitido para la ruta.
+     */
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ErrorResponse> handleMethodNotSupported(HttpRequestMethodNotSupportedException exception, HttpServletRequest request) {
+        ErrorResponse response = ErrorResponse.builder()
+                        .timestamp(LocalDateTime.now())
+                        .status(HttpStatus.METHOD_NOT_ALLOWED.value())
+                        .error(HttpStatus.METHOD_NOT_ALLOWED.name())
+                        .message("El método HTTP " + exception.getMethod() + " no está permitido " + "para esta ruta.")
+                        .path(request.getRequestURI())
+                        .build();
+
+        return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).body(response);
+    }
+
+    /**
+     * Maneja modificaciones simultáneas sobre
+     * el mismo registro.
+     */
+    @ExceptionHandler(OptimisticLockingFailureException.class)
+    public ResponseEntity<ErrorResponse> handleOptimisticLockingFailure(OptimisticLockingFailureException exception, HttpServletRequest request) {
+        ErrorResponse response =
+                ErrorResponse.builder()
+                        .timestamp(
+                                LocalDateTime.now()
+                        )
+                        .status(
+                                HttpStatus.CONFLICT.value()
+                        )
+                        .error(
+                                HttpStatus.CONFLICT.name()
+                        )
+                        .message(
+                                "El registro fue actualizado por "
+                                        + "otro usuario. Recargue la "
+                                        + "información e intente nuevamente."
+                        )
+                        .path(
+                                request.getRequestURI()
+                        )
+                        .build();
+
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(response);
+    }
+
+    /**
+     * Evita exponer SQL cuando se viola una restricción
+     * única o una llave foránea.
+     */
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorResponse> handleDataIntegrityViolation(DataIntegrityViolationException exception, HttpServletRequest request) {
+        ErrorResponse response = ErrorResponse.builder()
+                        .timestamp(LocalDateTime.now())
+                        .status(HttpStatus.CONFLICT.value())
+                        .error(HttpStatus.CONFLICT.name())
+                        .message(
+                                "No fue posible completar la operación. "
+                                        + "El registro puede estar duplicado "
+                                        + "o relacionado con otros datos.")
+                        .path(request.getRequestURI())
+                        .build();
+
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
                 .body(response);
     }
 

@@ -127,6 +127,32 @@ public class MedicationCatalogService {
                 .presentation(
                         medication.getPresentation()
                 )
+                .unit(
+                        medication.getUnit()
+                )
+                .createdAt(
+                        medication.getCreatedAt() != null
+                                ? medication
+                                .getCreatedAt()
+                                .toString()
+                                : null
+                )
+                .createdBy(
+                        medication.getCreatedBy()
+                )
+                .updatedAt(
+                        medication.getUpdatedAt() != null
+                                ? medication
+                                .getUpdatedAt()
+                                .toString()
+                                : null
+                )
+                .updatedBy(
+                        medication.getUpdatedBy()
+                )
+                .version(
+                        medication.getVersion()
+                )
                 .description(
                         medication.getDescription()
                 )

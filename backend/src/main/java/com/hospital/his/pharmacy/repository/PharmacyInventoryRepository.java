@@ -49,6 +49,18 @@ public interface PharmacyInventoryRepository
     );
 
     /**
+     * Lista todos los inventarios de una sucursal,
+     * tanto activos como inactivos.
+     *
+     * Se utiliza en el mantenimiento administrativo
+     * de inventario del usuario de Farmacia.
+     */
+    List<PharmacyInventory>
+    findByBranch_IdOrderByMedication_NameAsc(
+            Long branchId
+    );
+
+    /**
      * Busca el inventario activo de un medicamento
      * en una sucursal determinada.
      */
