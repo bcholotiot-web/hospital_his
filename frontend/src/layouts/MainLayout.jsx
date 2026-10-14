@@ -295,12 +295,25 @@ function MainLayout({
                      * Menú médico.
                      */}
                     {isDoctor && (
-                        <Link
-                            to="/doctor"
-                            className="main-sidebar-link"
-                        >
-                            Consultas Médicas
-                        </Link>
+                        <>
+                            <Link
+                                to="/doctor"
+                                className="main-sidebar-link"
+                            >
+                                Consultas Médicas
+                            </Link>
+
+                            {hasPermission(
+                                "MEDICAL_AGENDA_READ"
+                            ) && (
+                                    <Link
+                                        to="/doctor/agenda"
+                                        className="main-sidebar-link"
+                                    >
+                                        Agenda Médica
+                                    </Link>
+                                )}
+                        </>
                     )}
 
                     {/*

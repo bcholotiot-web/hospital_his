@@ -20,6 +20,11 @@ import com.hospital.his.catalogs.repository.BranchSpecialtyRepository;
 import com.hospital.his.catalogs.repository.SpecialtyRepository;
 import com.hospital.his.users.entity.User;
 import com.hospital.his.users.repository.UserRepository;
+import com.hospital.his.medicalagenda.service.MedicalAgendaService;
+import com.hospital.his.medicalagenda.dto.MedicalAgendaBusyPeriodResponse;
+
+
+
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,11 +40,32 @@ import java.util.List;
 @Service
 public class AppointmentService {
 
+    /**
+     * Duración funcional de cada bloque de cita.
+     *
+     * Debe coincidir con:
+     *
+     * - La generación de horarios disponibles.
+     * - La vista del calendario médico.
+     * - La validación de eventos bloqueantes.
+     */
+    private static final long APPOINTMENT_DURATION_MINUTES = 30L;
+
     private final AppointmentRepository appointmentRepository;
     private final UserRepository userRepository;
     private final BranchRepository branchRepository;
     private final SpecialtyRepository specialtyRepository;
     private final BranchSpecialtyRepository branchSpecialtyRepository;
+    /**
+     * Permite validar eventos personales antes de
+     * mostrar o reservar horarios de citas.
+     */
+    private final MedicalAgendaService medicalAgendaService;
+
+    /**
+     * Permite excluir horarios bloqueados por eventos
+     * personales activos del médico.
+     */
     private final AuditService auditService;
     private final AppointmentDocumentService appointmentDocumentService;
     /**
@@ -54,7 +80,7 @@ public class AppointmentService {
             UserRepository userRepository,
             BranchRepository branchRepository,
             SpecialtyRepository specialtyRepository,
-            BranchSpecialtyRepository branchSpecialtyRepository,
+            BranchSpecialtyRepository branchSpecialtyRepository, MedicalAgendaService medicalAgendaService,
             AuditService auditService,
             AppointmentDocumentService appointmentDocumentService, AppointmentStatusPresentationService appointmentStatusPresentationService
     ) {
@@ -63,6 +89,7 @@ public class AppointmentService {
         this.branchRepository = branchRepository;
         this.specialtyRepository = specialtyRepository;
         this.branchSpecialtyRepository = branchSpecialtyRepository;
+        this.medicalAgendaService = medicalAgendaService;
         this.auditService = auditService;
         this.appointmentDocumentService = appointmentDocumentService;
         this.appointmentStatusPresentationService = appointmentStatusPresentationService;
@@ -342,6 +369,25 @@ public class AppointmentService {
                                 endOfDay
                         );
 
+        /**
+         * Recupera todos los eventos activos que se
+         * intersectan con la fecha seleccionada.
+         *
+         * Esta operación ejecuta una sola consulta,
+         * sin importar cuántos horarios base existan.
+         */
+        List<MedicalAgendaBusyPeriodResponse>
+                blockedPeriods =
+                medicalAgendaService
+                        .getActiveBusyPeriodsForDoctor(
+                                doctorId,
+                                startOfDay,
+                                selectedDate
+                                        .plusDays(1)
+                                        .atStartOfDay()
+                        );
+
+
         LocalDateTime now = LocalDateTime.now();
 
         List<AvailableSlotResponse> availableSlots =
@@ -351,6 +397,20 @@ public class AppointmentService {
 
             LocalDateTime slotDateTime =
                     selectedDate.atTime(slot);
+
+            /**
+             * Cada horario representa un bloque de
+             * 30 minutos.
+             */
+            LocalDateTime slotEndDateTime =
+                    slotDateTime.plusMinutes(
+                            APPOINTMENT_DURATION_MINUTES
+                    );
+
+            boolean pastOrPresent =
+                    !slotDateTime.isAfter(
+                            LocalDateTime.now()
+                    );
 
             boolean occupied =
                     existingAppointments.stream()
@@ -363,10 +423,34 @@ public class AppointmentService {
                                     this::isAppointmentBlockingSlot
                             );
 
-            boolean pastOrPresent =
-                    !slotDateTime.isAfter(
-                            LocalDateTime.now()
-                    );
+            /**
+             * Un evento personal activo bloquea el horario
+             * cuando se superpone con cualquier parte
+             * del bloque de cita.
+             */
+            /**
+             * Un bloque está ocupado por agenda cuando:
+             *
+             * inicioEvento < finBloque
+             * y
+             * finEvento > inicioBloque
+             */
+            boolean blockedByAgendaEvent =
+                    !pastOrPresent &&
+                            blockedPeriods
+                                    .stream()
+                                    .anyMatch(
+                                            period ->
+                                                    period.getStartDateTime()
+                                                            .isBefore(
+                                                                    slotEndDateTime
+                                                            )
+                                                            &&
+                                                            period.getEndDateTime()
+                                                                    .isAfter(
+                                                                            slotDateTime
+                                                                    )
+                                    );
 
             availableSlots.add(
                     AvailableSlotResponse.builder()
@@ -377,8 +461,9 @@ public class AppointmentService {
                                     slot.toString()
                             )
                             .available(
-                                    !occupied
-                                            && !pastOrPresent
+                                    !occupied &&
+                                            !blockedByAgendaEvent &&
+                                            !pastOrPresent
                             )
                             .build()
             );
@@ -569,6 +654,37 @@ public class AppointmentService {
                     "El horario seleccionado ya no está disponible. Por favor, elija otro horario."
             );
         }
+
+        /**
+         * Revalidación transaccional del bloqueo
+         * de agenda.
+         *
+         * Aunque el horario se haya mostrado disponible,
+         * un evento pudo crearse antes de confirmar
+         * la cita.
+         */
+        LocalDateTime appointmentEndDateTime =
+                appointmentDateTime.plusMinutes(
+                        APPOINTMENT_DURATION_MINUTES
+                );
+
+        boolean blockedByAgendaEvent =
+                medicalAgendaService
+                        .hasActiveEventOverlap(
+                                doctor.getId(),
+                                appointmentDateTime,
+                                appointmentEndDateTime
+                        );
+
+        if (blockedByAgendaEvent) {
+            throw new RuntimeException(
+                    "El horario seleccionado se encuentra "
+                            + "bloqueado por un evento de la "
+                            + "agenda del médico. "
+                            + "Seleccione otro horario."
+            );
+        }
+
 
         Appointment appointment =
                 Appointment.builder()

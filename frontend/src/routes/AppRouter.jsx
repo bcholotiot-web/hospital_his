@@ -29,6 +29,7 @@ import InventoryMovements from "../pages/Pharmacy/InventoryMovements";
 import AppointmentStatuses from "../pages/AppointmentStatuses/AppointmentStatuses";
 import CreateInventoryMovement from "../pages/Pharmacy/CreateInventoryMovement";
 import InventoryMovementDetail from "../pages/Pharmacy/InventoryMovementDetail";
+import MedicalAgenda from "../pages/MedicalAgenda/MedicalAgenda";
 /*
  * CU-13:
  * Administración de especialidades disponibles
@@ -88,6 +89,7 @@ function AppRouter() {
                 <Route path="/pharmacy/inventory-movements/create" element={<PrivateRoute allowedRoles={["ADMIN", "FARMACIA"]} requiredPermission="INVENTORY_MOVEMENT_CREATE"><CreateInventoryMovement /></PrivateRoute>} />
                 <Route path="/pharmacy/inventory-movements/:movementId" element={<PrivateRoute allowedRoles={["ADMIN", "FARMACIA"]} requiredPermission="INVENTORY_MOVEMENT_READ"><InventoryMovementDetail /></PrivateRoute>} />
                 <Route path="/admin/appointment-statuses" element={<PrivateRoute requiredPermission="APPOINTMENT_STATUS_READ"> <AppointmentStatuses /></PrivateRoute>} />
+                <Route path="/doctor/agenda" element={<PrivateRoute allowedRoles={["MEDICO"]} requiredPermission="MEDICAL_AGENDA_READ"><MedicalAgenda /></PrivateRoute>} />
 
 
             </Routes>

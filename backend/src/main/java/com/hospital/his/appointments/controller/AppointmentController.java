@@ -4,6 +4,7 @@ import com.hospital.his.appointments.dto.AppointmentResponse;
 import com.hospital.his.appointments.dto.CreateAppointmentRequest;
 import com.hospital.his.appointments.service.AppointmentService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import com.hospital.his.appointments.dto.AvailableSlotResponse;
 import com.hospital.his.appointments.dto.DoctorResponse;
@@ -66,7 +67,8 @@ public class AppointmentController {
         );
     }
 
-    @GetMapping("/availability")
+    @PreAuthorize("hasRole('PACIENTE')")
+    @GetMapping("/available-slots")
     public ResponseEntity<List<AvailableSlotResponse>> getAvailableSlots(
             @RequestParam Long doctorId,
             @RequestParam String date
@@ -78,6 +80,13 @@ public class AppointmentController {
                 )
         );
     }
+
+    /*  /**
+     * Obtiene los horarios disponibles de un médico
+     * para una fecha.
+     */
+
+
 
     @GetMapping("/branches")
     public ResponseEntity<List<BranchResponse>> getActiveBranches() {
@@ -98,5 +107,7 @@ public class AppointmentController {
                 )
         );
     }
+
+
 
 }

@@ -17,8 +17,10 @@ import com.hospital.his.catalogs.entity.Specialty;
 import com.hospital.his.medicalconsultation.entity.MedicalConsultation;
 import com.hospital.his.medicalconsultation.entity.MedicalConsultationStatus;
 import com.hospital.his.medicalconsultation.repository.MedicalConsultationRepository;
+import com.hospital.his.medicalagenda.service.MedicalAgendaService;
 import com.hospital.his.users.entity.User;
 import com.hospital.his.users.repository.UserRepository;
+import com.hospital.his.appointments.service.AppointmentStatusPresentationService;
 
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -37,6 +39,17 @@ import java.util.Set;
 
 @Service
 public class FollowUpAppointmentService {
+    /**
+     * Duración funcional de un bloque de cita
+     * de seguimiento.
+     *
+     * Este valor debe coincidir con:
+     *
+     * - AppointmentService.
+     * - MedicalAgendaCalendarService.
+     */
+    private static final long
+            APPOINTMENT_DURATION_MINUTES = 30L;
 
     /**
      * Tiempo durante el cual se reserva el horario
@@ -71,6 +84,16 @@ public class FollowUpAppointmentService {
     private final AppointmentService
             appointmentService;
 
+    /**
+     * Permite validar que la cita de seguimiento
+     * no se superponga con un evento personal
+     * activo del médico.
+     */
+    private final MedicalAgendaService medicalAgendaService;
+
+    private final AppointmentStatusPresentationService
+            appointmentStatusPresentationService;
+
     private final AuditService
             auditService;
 
@@ -82,7 +105,7 @@ public class FollowUpAppointmentService {
             MedicalConsultationRepository
                     medicalConsultationRepository,
             UserRepository userRepository,
-            AppointmentService appointmentService,
+            AppointmentService appointmentService, MedicalAgendaService medicalAgendaService, AppointmentStatusPresentationService appointmentStatusPresentationService,
             AuditService auditService,
             ApplicationEventPublisher
                     applicationEventPublisher
@@ -98,6 +121,8 @@ public class FollowUpAppointmentService {
 
         this.appointmentService =
                 appointmentService;
+        this.medicalAgendaService = medicalAgendaService;
+        this.appointmentStatusPresentationService = appointmentStatusPresentationService;
 
         this.auditService =
                 auditService;
@@ -752,13 +777,42 @@ public class FollowUpAppointmentService {
     }
 
     /**
-     * Revalida el horario en la transacción
-     * de creación.
+     * Revalida el horario dentro de la misma
+     * transacción que crea el seguimiento.
+     *
+     * Comprueba:
+     *
+     * - Que sea una fecha futura.
+     * - Que pertenezca a un horario permitido.
+     * - Que no exista otra cita bloqueante.
+     * - Que no exista un evento personal activo
+     *   que se superponga con el bloque.
      */
     private void validateSelectedSlot(
             User doctor,
             LocalDateTime selectedDateTime
     ) {
+        if (doctor == null) {
+            throw new RuntimeException(
+                    "Debe indicar el médico del seguimiento."
+            );
+        }
+
+        if (doctor.getId() == null) {
+            throw new RuntimeException(
+                    "El médico no tiene un identificador válido."
+            );
+        }
+
+        if (selectedDateTime == null) {
+            throw new RuntimeException(
+                    "Debe seleccionar la fecha y hora del seguimiento."
+            );
+        }
+
+        /**
+         * No se permiten fechas actuales ni pasadas.
+         */
         if (
                 !selectedDateTime.isAfter(
                         LocalDateTime.now()
@@ -769,6 +823,10 @@ public class FollowUpAppointmentService {
             );
         }
 
+        /**
+         * El horario debe pertenecer a los bloques
+         * permitidos por el sistema.
+         */
         if (
                 !getBaseSlots().contains(
                         selectedDateTime
@@ -781,6 +839,10 @@ public class FollowUpAppointmentService {
             );
         }
 
+        /**
+         * Revalidar las citas que ocupan exactamente
+         * el mismo inicio.
+         */
         List<Appointment> appointments =
                 appointmentRepository
                         .findByDoctor_IdAndAppointmentDateTime(
@@ -789,7 +851,8 @@ public class FollowUpAppointmentService {
                         );
 
         boolean occupied =
-                appointments.stream()
+                appointments
+                        .stream()
                         .anyMatch(
                                 this::isAppointmentBlockingSlot
                         );
@@ -798,6 +861,44 @@ public class FollowUpAppointmentService {
             throw new RuntimeException(
                     "El horario seleccionado ya no está disponible. "
                             + "Por favor, elija otro horario."
+            );
+        }
+
+        /**
+         * Calcular el final exclusivo del bloque.
+         *
+         * Ejemplo:
+         *
+         * Inicio: 09:00
+         * Fin:    09:30
+         */
+        LocalDateTime selectedEndDateTime =
+                selectedDateTime.plusMinutes(
+                        APPOINTMENT_DURATION_MINUTES
+                );
+
+        /**
+         * Revalidar eventos personales.
+         *
+         * Esta consulta se ejecuta inmediatamente antes
+         * de construir y guardar la cita, de modo que
+         * detecta eventos creados después de que el médico
+         * consultó inicialmente la disponibilidad.
+         */
+        boolean blockedByAgendaEvent =
+                medicalAgendaService
+                        .hasActiveEventOverlap(
+                                doctor.getId(),
+                                selectedDateTime,
+                                selectedEndDateTime
+                        );
+
+        if (blockedByAgendaEvent) {
+            throw new RuntimeException(
+                    "El horario seleccionado se encuentra "
+                            + "bloqueado por un evento de la "
+                            + "agenda del médico. "
+                            + "Seleccione otro horario."
             );
         }
     }
@@ -1099,6 +1200,12 @@ public class FollowUpAppointmentService {
                         appointment
                                 .getStatus()
                                 .name()
+                )
+                .statusPresentation(
+                        appointmentStatusPresentationService
+                                .resolveForStaff(
+                                        appointment.getStatus()
+                                )
                 )
                 .origin(
                         appointment
