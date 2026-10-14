@@ -6,6 +6,7 @@ import com.hospital.his.medications.entity.Medication;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
@@ -47,6 +48,24 @@ import java.time.LocalDateTime;
                                 "idx_inventory_movement_created_at",
                         columnList =
                                 "created_at"
+                ),
+                @Index(
+                        name =
+                                "idx_inventory_movement_active",
+                        columnList =
+                                "active"
+                ),
+                @Index(
+                        name =
+                                "idx_inventory_movement_reference_number",
+                        columnList =
+                                "reference_number"
+                ),
+                @Index(
+                        name =
+                                "idx_inventory_movement_branch_active_created",
+                        columnList =
+                                "branch_id, active, created_at"
                 )
         }
 )
@@ -145,6 +164,35 @@ public class InventoryMovement {
     private Integer resultingStock;
 
     /**
+     * Costo por unidad registrado en el movimiento.
+     *
+     * Es obligatorio para COMPRA.
+     * Puede ser null para otros movimientos.
+     */
+    @Column(
+            name = "unit_cost",
+            precision = 12,
+            scale = 2
+    )
+    private BigDecimal unitCost;
+
+    /**
+     * Costo total calculado:
+     *
+     * quantity * unitCost
+     *
+     * Es obligatorio para COMPRA.
+     * Puede ser null para otros movimientos.
+     */
+    @Column(
+            name = "total_cost",
+            precision = 14,
+            scale = 2
+    )
+    private BigDecimal totalCost;
+
+
+    /**
      * Motivo funcional del movimiento.
      *
      * Ejemplos:
@@ -186,6 +234,27 @@ public class InventoryMovement {
     private Long referenceId;
 
     /**
+     * Número de referencia funcional ingresado
+     * por el usuario.
+     *
+     * Ejemplos:
+     *
+     * FAC-2026-001
+     * DEV-2026-004
+     * VENTA-000125
+     * REC-2026-010
+     *
+     * No sustituye referenceId, porque referenceId
+     * continúa relacionando entidades internas.
+     */
+    @Column(
+            name = "reference_number",
+            length = 100
+    )
+    private String referenceNumber;
+
+
+    /**
      * Usuario responsable de la operación.
      */
     @Column(
@@ -204,4 +273,47 @@ public class InventoryMovement {
             updatable = false
     )
     private LocalDateTime createdAt;
+
+    /**
+     * Indica si el movimiento está activo
+     * administrativamente.
+     *
+     * Desactivar un movimiento no revierte
+     * automáticamente el stock.
+     */
+    @Builder.Default
+    @Column(
+            nullable = false
+    )
+    private Boolean active = true;
+
+    /**
+     * Fecha de la última actualización administrativa.
+     */
+    @Column(
+            name = "updated_at",
+            nullable = false
+    )
+    private LocalDateTime updatedAt;
+
+    /**
+     * Usuario responsable de la última
+     * actualización administrativa.
+     */
+    @Column(
+            name = "updated_by",
+            nullable = false,
+            length = 100
+    )
+    private String updatedBy;
+
+    /**
+     * Control optimista para cambios de estado.
+     */
+    @Version
+    @Column(
+            nullable = false
+    )
+    private Long version;
+
 }

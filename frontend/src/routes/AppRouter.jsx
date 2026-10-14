@@ -27,6 +27,8 @@ import Medications from "../pages/Medications/Medications";
 import PharmacyInventory from "../pages/Pharmacy/PharmacyInventory";
 import InventoryMovements from "../pages/Pharmacy/InventoryMovements";
 import AppointmentStatuses from "../pages/AppointmentStatuses/AppointmentStatuses";
+import CreateInventoryMovement from "../pages/Pharmacy/CreateInventoryMovement";
+import InventoryMovementDetail from "../pages/Pharmacy/InventoryMovementDetail";
 /*
  * CU-13:
  * Administración de especialidades disponibles
@@ -82,7 +84,9 @@ function AppRouter() {
                 <Route path="/admin/laboratory-tests" element={<PrivateRoute requiredPermission="LABORATORY_TEST_READ"><LaboratoryTests /></PrivateRoute>} />
                 <Route path="/admin/medications" element={<PrivateRoute requiredPermission="MEDICATION_READ"><Medications /></PrivateRoute>} />
                 <Route path="/pharmacy/inventory" element={<PrivateRoute allowedRoles={["FARMACIA"]} requiredPermission="INVENTORY_READ"><PharmacyInventory /></PrivateRoute>} />
-                <Route path="/pharmacy/inventory-movements" element={<PrivateRoute allowedRoles={["FARMACIA"]} requiredPermission="INVENTORY_MOVEMENT_READ"><InventoryMovements /></PrivateRoute>} />
+                <Route path="/pharmacy/inventory-movements" element={<PrivateRoute allowedRoles={["ADMIN", "FARMACIA"]} requiredPermission="INVENTORY_MOVEMENT_READ"><InventoryMovements /></PrivateRoute>} />
+                <Route path="/pharmacy/inventory-movements/create" element={<PrivateRoute allowedRoles={["ADMIN", "FARMACIA"]} requiredPermission="INVENTORY_MOVEMENT_CREATE"><CreateInventoryMovement /></PrivateRoute>} />
+                <Route path="/pharmacy/inventory-movements/:movementId" element={<PrivateRoute allowedRoles={["ADMIN", "FARMACIA"]} requiredPermission="INVENTORY_MOVEMENT_READ"><InventoryMovementDetail /></PrivateRoute>} />
                 <Route path="/admin/appointment-statuses" element={<PrivateRoute requiredPermission="APPOINTMENT_STATUS_READ"> <AppointmentStatuses /></PrivateRoute>} />
 
 

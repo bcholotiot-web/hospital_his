@@ -104,4 +104,30 @@ public interface PharmacyInventoryRepository
             Long inventoryId,
             Long branchId
     );
+
+    /**
+     * Obtiene y bloquea el inventario de una sucursal
+     * y medicamento.
+     *
+     * El bloqueo se mantiene hasta finalizar la
+     * transacción actual.
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+    SELECT inventory
+    FROM PharmacyInventory inventory
+    JOIN FETCH inventory.branch branch
+    JOIN FETCH inventory.medication medication
+    WHERE branch.id = :branchId
+      AND medication.id = :medicationId
+    """)
+    Optional<PharmacyInventory>
+    findForUpdateByBranchIdAndMedicationId(
+            @Param("branchId")
+            Long branchId,
+
+            @Param("medicationId")
+            Long medicationId
+    );
+
 }

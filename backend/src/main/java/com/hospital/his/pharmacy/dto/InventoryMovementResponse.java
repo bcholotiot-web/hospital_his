@@ -1,6 +1,7 @@
 package com.hospital.his.pharmacy.dto;
 
 import lombok.*;
+import java.math.BigDecimal;
 
 /**
  * Respuesta de un movimiento de inventario.
@@ -46,13 +47,27 @@ public class InventoryMovementResponse {
 
     private Integer resultingStock;
 
+    private BigDecimal unitCost;
+
+    private BigDecimal totalCost;
+
     private String reason;
 
     private String referenceType;
 
     private Long referenceId;
 
+    private String referenceNumber;
+
     private String createdBy;
 
     private String createdAt;
+
+    private Boolean active;
+
+    private String updatedAt;
+
+    private String updatedBy;
+
+    private Long version;
 }

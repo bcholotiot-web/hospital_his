@@ -97,9 +97,8 @@ function MainLayout({
                     {/*
                      * Administración de usuarios.
                      *
-                     * Todavía se conserva por rol ADMIN
-                     * porque no hemos creado permisos
-                     * USER_READ, USER_CREATE, etc.
+                     * Se conserva por rol ADMIN porque
+                     * todavía no existen permisos USER_*.
                      */}
                     {isAdmin && (
                         <Link
@@ -111,8 +110,7 @@ function MainLayout({
                     )}
 
                     {/*
-                     * Catálogo administrativo
-                     * de sucursales.
+                     * Catálogo de sucursales.
                      */}
                     {hasPermission(
                         "BRANCH_READ"
@@ -126,8 +124,7 @@ function MainLayout({
                         )}
 
                     {/*
-                     * Catálogo administrativo
-                     * de especialidades.
+                     * Catálogo de especialidades.
                      */}
                     {hasPermission(
                         "SPECIALTY_READ"
@@ -141,9 +138,8 @@ function MainLayout({
                         )}
 
                     {/*
-                     * CU-13:
                      * Especialidades disponibles
-                     * por sucursal.
+                     * por sede.
                      */}
                     {hasPermission(
                         "BRANCH_SPECIALTY_READ"
@@ -171,8 +167,7 @@ function MainLayout({
                         )}
 
                     {/*
-                     * Administración de permisos
-                     * asignados a roles.
+                     * Asignación de permisos por rol.
                      */}
                     {hasPermission(
                         "PERMISSION_READ"
@@ -216,8 +211,8 @@ function MainLayout({
                         )}
 
                     {/*
-                     * Configuración visual de los
-                     * estados técnicos de cita.
+                     * Configuración visual de estados
+                     * técnicos de cita.
                      */}
                     {hasPermission(
                         "APPOINTMENT_STATUS_READ"
@@ -230,6 +225,9 @@ function MainLayout({
                             </Link>
                         )}
 
+                    {/*
+                     * Menú del paciente.
+                     */}
                     {isPatient && (
                         <>
                             <Link
@@ -248,6 +246,9 @@ function MainLayout({
                         </>
                     )}
 
+                    {/*
+                     * Menú de recepción.
+                     */}
                     {isReceptionist && (
                         <Link
                             to="/reception"
@@ -257,6 +258,9 @@ function MainLayout({
                         </Link>
                     )}
 
+                    {/*
+                     * Menú de caja.
+                     */}
                     {isCashier && (
                         <>
                             <Link
@@ -275,6 +279,9 @@ function MainLayout({
                         </>
                     )}
 
+                    {/*
+                     * Menú de enfermería.
+                     */}
                     {isNursing && (
                         <Link
                             to="/nursing"
@@ -284,6 +291,9 @@ function MainLayout({
                         </Link>
                     )}
 
+                    {/*
+                     * Menú médico.
+                     */}
                     {isDoctor && (
                         <Link
                             to="/doctor"
@@ -293,6 +303,9 @@ function MainLayout({
                         </Link>
                     )}
 
+                    {/*
+                     * Menú de laboratorio.
+                     */}
                     {isLaboratory && (
                         <Link
                             to="/laboratory"
@@ -302,6 +315,10 @@ function MainLayout({
                         </Link>
                     )}
 
+                    {/*
+                     * Módulos operativos exclusivos
+                     * del rol FARMACIA.
+                     */}
                     {isPharmacy && (
                         <>
                             {hasPermission(
@@ -330,19 +347,44 @@ function MainLayout({
                             >
                                 Despacho de Medicamentos
                             </Link>
-
-                            {hasPermission(
-                                "INVENTORY_MOVEMENT_READ"
-                            ) && (
-                                    <Link
-                                        to="/pharmacy/inventory-movements"
-                                        className="main-sidebar-link"
-                                    >
-                                        Movimientos de Inventario
-                                    </Link>
-                                )}
                         </>
                     )}
+
+                    {/*
+                     * CU-15:
+                     * La bitácora está disponible para
+                     * cualquier rol que posea el permiso.
+                     *
+                     * Actualmente:
+                     * ADMIN y FARMACIA.
+                     */}
+                    {hasPermission(
+                        "INVENTORY_MOVEMENT_READ"
+                    ) && (
+                            <Link
+                                to="/pharmacy/inventory-movements"
+                                className="main-sidebar-link"
+                            >
+                                Bitácora de Inventario
+                            </Link>
+                        )}
+
+                    {/*
+                     * Registro manual de movimientos.
+                     *
+                     * La interfaz y el backend limitan
+                     * los tipos disponibles por rol.
+                     */}
+                    {hasPermission(
+                        "INVENTORY_MOVEMENT_CREATE"
+                    ) && (
+                            <Link
+                                to="/pharmacy/inventory-movements/create"
+                                className="main-sidebar-link"
+                            >
+                                Registrar Movimiento
+                            </Link>
+                        )}
                 </nav>
 
                 <div className="main-sidebar-footer">

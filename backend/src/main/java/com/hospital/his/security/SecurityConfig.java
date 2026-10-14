@@ -138,6 +138,18 @@ public class SecurityConfig {
                         .requestMatchers("/api/laboratory/**")
                         .hasRole("LABORATORIO")
 
+                        /*
+                         * CU-15:
+                         * Bitácora consultable por ADMIN o FARMACIA.
+                         *
+                         * Los permisos concretos se validan mediante
+                         * @PreAuthorize en el controlador.
+                         */
+                        .requestMatchers(
+                                "/api/pharmacy/inventory-movements/**"
+                        )
+                        .authenticated()
+
                         /*CU-11:
                          Solo un usuario con rol FARMACIA puede consultar
                          el inventario y realizar despachos.

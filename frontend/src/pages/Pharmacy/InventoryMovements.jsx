@@ -9,12 +9,17 @@ import {
     Link
 } from "react-router-dom";
 
-import MainLayout from "../../layouts/MainLayout";
+import MainLayout
+    from "../../layouts/MainLayout";
 
 import {
     getInventoryMonthlySummary,
     getInventoryMovements
 } from "../../api/inventoryMovementApi";
+
+import {
+    getActiveBranches
+} from "../../api/branchApi";
 
 import {
     useAuth
@@ -23,7 +28,10 @@ import {
 import "../../styles/ui.css";
 
 /**
- * Tipos de movimiento soportados por el backend.
+ * Tipos de movimientos almacenados
+ * en la bitácora.
+ *
+ * Incluye movimientos manuales y automáticos.
  */
 const MOVEMENT_TYPES = [
     {
@@ -32,11 +40,27 @@ const MOVEMENT_TYPES = [
     },
     {
         value: "ENTRADA",
-        label: "Entrada"
+        label: "Entrada histórica"
     },
     {
         value: "SALIDA",
-        label: "Salida manual"
+        label: "Salida histórica"
+    },
+    {
+        value: "COMPRA",
+        label: "Compra"
+    },
+    {
+        value: "DEVOLUCION",
+        label: "Devolución"
+    },
+    {
+        value: "VENTA",
+        label: "Venta"
+    },
+    {
+        value: "RECLAMO",
+        label: "Reclamo"
     },
     {
         value: "AJUSTE_POSITIVO",
@@ -57,7 +81,8 @@ const MOVEMENT_TYPES = [
 ];
 
 /**
- * Nombres visibles de los meses.
+ * Meses disponibles para consultar
+ * el resumen mensual.
  */
 const MONTHS = [
     {
@@ -112,17 +137,40 @@ const MONTHS = [
 
 function InventoryMovements() {
     const {
+        user,
+        hasRole,
         hasPermission
     } = useAuth();
 
+    /**
+     * ADMIN debe seleccionar una sucursal.
+     *
+     * FARMACIA utiliza automáticamente la
+     * sucursal asignada a su cuenta.
+     */
+    const isAdmin =
+        hasRole("ADMIN") ||
+        hasRole("ADMINISTRADOR");
+
+    const isPharmacy =
+        hasRole("FARMACIA");
+
+    /**
+     * Permisos del módulo.
+     */
     const canRead =
         hasPermission(
             "INVENTORY_MOVEMENT_READ"
         );
 
+    const canCreate =
+        hasPermission(
+            "INVENTORY_MOVEMENT_CREATE"
+        );
+
     /**
-     * Fecha actual utilizada como valor inicial
-     * del resumen mensual.
+     * Fecha actual utilizada para inicializar
+     * el resumen mensual.
      */
     const currentDate =
         useMemo(
@@ -131,7 +179,30 @@ function InventoryMovements() {
         );
 
     /**
-     * Movimientos paginados.
+     * Sucursal seleccionada por ADMIN.
+     */
+    const [
+        selectedBranchId,
+        setSelectedBranchId
+    ] = useState("");
+
+    const [
+        branches,
+        setBranches
+    ] = useState([]);
+
+    const [
+        loadingBranches,
+        setLoadingBranches
+    ] = useState(false);
+
+    const [
+        branchError,
+        setBranchError
+    ] = useState("");
+
+    /**
+     * Movimientos recuperados del backend.
      */
     const [
         movements,
@@ -144,7 +215,7 @@ function InventoryMovements() {
     ] = useState(false);
 
     /**
-     * Filtros aplicados al backend.
+     * Filtros de la bitácora.
      */
     const [
         searchFilter,
@@ -157,6 +228,21 @@ function InventoryMovements() {
     ] = useState("");
 
     const [
+        referenceNumberFilter,
+        setReferenceNumberFilter
+    ] = useState("");
+
+    const [
+        createdByFilter,
+        setCreatedByFilter
+    ] = useState("");
+
+    const [
+        activeFilter,
+        setActiveFilter
+    ] = useState("");
+
+    const [
         startDateFilter,
         setStartDateFilter
     ] = useState("");
@@ -166,9 +252,6 @@ function InventoryMovements() {
         setEndDateFilter
     ] = useState("");
 
-    /**
-     * Errores de los filtros.
-     */
     const [
         filterErrors,
         setFilterErrors
@@ -240,11 +323,95 @@ function InventoryMovements() {
     ] = useState("");
 
     /**
-     * Cargar bitácora paginada.
+     * Carga las sucursales activas
+     * únicamente para ADMIN.
+     */
+    const loadBranches =
+        useCallback(async () => {
+            if (
+                !canRead ||
+                !isAdmin
+            ) {
+                setBranches([]);
+                setLoadingBranches(false);
+                return;
+            }
+
+            try {
+                setLoadingBranches(true);
+                setBranchError("");
+
+                const response =
+                    await getActiveBranches();
+
+                const branchList =
+                    Array.isArray(
+                        response.data
+                    )
+                        ? response.data
+                        : [];
+
+                setBranches(
+                    branchList
+                );
+
+            } catch (error) {
+                console.error(
+                    "Error al cargar sucursales:",
+                    error
+                );
+
+                setBranches([]);
+
+                setBranchError(
+                    error.response
+                        ?.data
+                        ?.message ||
+                    "No fue posible cargar las sucursales activas."
+                );
+
+            } finally {
+                setLoadingBranches(false);
+            }
+        }, [
+            canRead,
+            isAdmin
+        ]);
+
+    useEffect(() => {
+        loadBranches();
+    }, [loadBranches]);
+
+    /**
+     * Carga la bitácora paginada.
+     *
+     * ADMIN:
+     * exige una sucursal seleccionada.
+     *
+     * FARMACIA:
+     * no envía branchId porque Spring Boot
+     * utiliza la sucursal del usuario.
      */
     const loadMovements =
         useCallback(async () => {
             if (!canRead) {
+                return;
+            }
+
+            /**
+             * Evitar una llamada inválida cuando
+             * ADMIN todavía no seleccionó sucursal.
+             */
+            if (
+                isAdmin &&
+                !selectedBranchId
+            ) {
+                setMovements([]);
+                setTotalElements(0);
+                setTotalPages(0);
+                setFirst(true);
+                setLast(true);
+                setLoading(false);
                 return;
             }
 
@@ -253,10 +420,20 @@ function InventoryMovements() {
 
                 const response =
                     await getInventoryMovements({
+                        branchId:
+                            isAdmin
+                                ? selectedBranchId
+                                : "",
                         search:
                             searchFilter,
                         movementType:
                             movementTypeFilter,
+                        referenceNumber:
+                            referenceNumberFilter,
+                        createdBy:
+                            createdByFilter,
+                        active:
+                            activeFilter,
                         startDate:
                             startDateFilter,
                         endDate:
@@ -287,13 +464,11 @@ function InventoryMovements() {
                 );
 
                 setFirst(
-                    pageData
-                        ?.first ?? true
+                    pageData?.first ?? true
                 );
 
                 setLast(
-                    pageData
-                        ?.last ?? true
+                    pageData?.last ?? true
                 );
 
             } catch (error) {
@@ -320,8 +495,13 @@ function InventoryMovements() {
             }
         }, [
             canRead,
+            isAdmin,
+            selectedBranchId,
             searchFilter,
             movementTypeFilter,
+            referenceNumberFilter,
+            createdByFilter,
+            activeFilter,
             startDateFilter,
             endDateFilter,
             page,
@@ -329,19 +509,29 @@ function InventoryMovements() {
         ]);
 
     /**
-     * Cargar movimientos al abrir la pantalla
-     * o cambiar página.
+     * Cargar movimientos al cambiar sucursal,
+     * página, tamaño o filtros aplicados.
      */
     useEffect(() => {
         loadMovements();
     }, [loadMovements]);
 
     /**
-     * Consulta el resumen mensual.
+     * Carga el resumen mensual.
      */
     const loadMonthlySummary =
         useCallback(async () => {
             if (!canRead) {
+                return;
+            }
+
+            if (
+                isAdmin &&
+                !selectedBranchId
+            ) {
+                setMonthlySummary(null);
+                setSummaryError("");
+                setLoadingSummary(false);
                 return;
             }
 
@@ -366,7 +556,6 @@ function InventoryMovements() {
                 );
 
                 setMonthlySummary(null);
-
                 return;
             }
 
@@ -382,7 +571,6 @@ function InventoryMovements() {
                 );
 
                 setMonthlySummary(null);
-
                 return;
             }
 
@@ -391,10 +579,16 @@ function InventoryMovements() {
                 setSummaryError("");
 
                 const response =
-                    await getInventoryMonthlySummary(
-                        numericYear,
-                        numericMonth
-                    );
+                    await getInventoryMonthlySummary({
+                        branchId:
+                            isAdmin
+                                ? selectedBranchId
+                                : "",
+                        year:
+                            numericYear,
+                        month:
+                            numericMonth
+                    });
 
                 setMonthlySummary(
                     response.data
@@ -420,20 +614,22 @@ function InventoryMovements() {
             }
         }, [
             canRead,
+            isAdmin,
+            selectedBranchId,
             summaryYear,
             summaryMonth
         ]);
 
     /**
-     * Cargar el resumen del mes actual
-     * al abrir la pantalla.
+     * Carga el resumen automáticamente después de
+     * seleccionar una sucursal o cambiar el período.
      */
     useEffect(() => {
         loadMonthlySummary();
     }, [loadMonthlySummary]);
 
     /**
-     * Validar rango de fechas.
+     * Valida el rango de fechas de la bitácora.
      */
     const validateFilters = () => {
         const newErrors = {};
@@ -453,17 +649,29 @@ function InventoryMovements() {
         );
 
         return (
-            Object.keys(newErrors)
-                .length === 0
+            Object.keys(
+                newErrors
+            ).length === 0
         );
     };
 
     /**
-     * Aplicar filtros.
+     * Aplica los filtros.
      */
     const handleSearch =
         event => {
             event.preventDefault();
+
+            if (
+                isAdmin &&
+                !selectedBranchId
+            ) {
+                setBranchError(
+                    "Debe seleccionar una sucursal."
+                );
+
+                return;
+            }
 
             if (!validateFilters()) {
                 return;
@@ -477,11 +685,16 @@ function InventoryMovements() {
         };
 
     /**
-     * Limpiar filtros.
+     * Limpia solamente los filtros de la bitácora.
+     *
+     * La sucursal seleccionada se conserva.
      */
     const clearFilters = () => {
         setSearchFilter("");
         setMovementTypeFilter("");
+        setReferenceNumberFilter("");
+        setCreatedByFilter("");
+        setActiveFilter("");
         setStartDateFilter("");
         setEndDateFilter("");
         setFilterErrors({});
@@ -489,7 +702,7 @@ function InventoryMovements() {
     };
 
     /**
-     * Cambiar cantidad de registros.
+     * Cambia los registros mostrados por página.
      */
     const handleSizeChange =
         event => {
@@ -503,15 +716,68 @@ function InventoryMovements() {
         };
 
     /**
-     * Consultar manualmente el resumen mensual.
+     * Consulta manualmente el resumen.
      */
     const handleSummarySearch =
         event => {
             event.preventDefault();
 
+            if (
+                isAdmin &&
+                !selectedBranchId
+            ) {
+                setBranchError(
+                    "Debe seleccionar una sucursal."
+                );
+
+                return;
+            }
+
             loadMonthlySummary();
         };
 
+    /**
+     * Cambia la sucursal de contexto para ADMIN.
+     */
+    const handleBranchChange =
+        event => {
+            const newBranchId =
+                event.target.value;
+
+            setSelectedBranchId(
+                newBranchId
+            );
+
+            setPage(0);
+            setMovements([]);
+            setMonthlySummary(null);
+            setSummaryError("");
+            setBranchError("");
+            setFilterErrors({});
+        };
+
+    /**
+     * Actualiza manualmente la bitácora.
+     */
+    const handleRefresh = () => {
+        if (
+            isAdmin &&
+            !selectedBranchId
+        ) {
+            setBranchError(
+                "Debe seleccionar una sucursal."
+            );
+
+            return;
+        }
+
+        loadMovements();
+    };
+
+    /**
+     * Pantalla defensiva para un usuario
+     * sin permiso de lectura.
+     */
     if (!canRead) {
         return (
             <MainLayout>
@@ -534,26 +800,171 @@ function InventoryMovements() {
                 Movimientos de Inventario
             </h1>
 
+            {/*
+             * Selector de sucursal para ADMIN.
+             */}
+            {isAdmin && (
+                <div
+                    className="card"
+                    style={{
+                        marginBottom:
+                            "16px"
+                    }}
+                >
+                    <h2 className="section-title">
+                        Sucursal de Consulta
+                    </h2>
+
+                    <div className="form-grid">
+                        <div className="form-group">
+                            <label>
+                                Sucursal
+                            </label>
+
+                            <select
+                                value={
+                                    selectedBranchId
+                                }
+                                onChange={
+                                    handleBranchChange
+                                }
+                                disabled={
+                                    loadingBranches
+                                }
+                            >
+                                <option value="">
+                                    Seleccione una sucursal
+                                </option>
+
+                                {branches.map(
+                                    branch => (
+                                        <option
+                                            key={
+                                                branch.id
+                                            }
+                                            value={
+                                                branch.id
+                                            }
+                                        >
+                                            {
+                                                branch.name
+                                            }
+                                        </option>
+                                    )
+                                )}
+                            </select>
+
+                            {loadingBranches && (
+                                <small>
+                                    Cargando sucursales...
+                                </small>
+                            )}
+
+                            {branchError && (
+                                <div className="error-message">
+                                    {branchError}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {!selectedBranchId &&
+                        !loadingBranches &&
+                        !branchError && (
+                            <div
+                                style={{
+                                    marginTop:
+                                        "10px",
+                                    padding:
+                                        "12px",
+                                    borderRadius:
+                                        "6px",
+                                    backgroundColor:
+                                        "#eff6ff",
+                                    border:
+                                        "1px solid #bfdbfe",
+                                    color:
+                                        "#1e3a8a"
+                                }}
+                            >
+                                Seleccione una sucursal para consultar la bitácora y el resumen mensual.
+                            </div>
+                        )}
+                </div>
+            )}
+
+            {/*
+             * Información de sucursal para FARMACIA.
+             */}
+            {isPharmacy && (
+                <div
+                    style={{
+                        marginBottom:
+                            "16px",
+                        padding:
+                            "12px",
+                        borderRadius:
+                            "6px",
+                        backgroundColor:
+                            "#f8fafc",
+                        border:
+                            "1px solid #e2e8f0",
+                        color:
+                            "#475569"
+                    }}
+                >
+                    <strong>
+                        Sucursal:
+                    </strong>
+
+                    {" "}
+
+                    {user?.branchName ||
+                        "Sucursal asignada"}
+                </div>
+            )}
+
+            {/*
+             * Acciones principales.
+             */}
             <div
                 className="button-row"
                 style={{
-                    marginBottom: "16px"
+                    marginBottom:
+                        "16px"
                 }}
             >
-                <Link
-                    to="/pharmacy/inventory"
-                    className="btn btn-secondary"
-                >
-                    Volver al inventario
-                </Link>
+                {isPharmacy && (
+                    <Link
+                        to="/pharmacy/inventory"
+                        className="btn btn-secondary"
+                    >
+                        Volver al inventario
+                    </Link>
+                )}
+
+                {canCreate && (
+                    <Link
+                        to="/pharmacy/inventory-movements/create"
+                        className="btn btn-primary"
+                    >
+                        Registrar movimiento
+                    </Link>
+                )}
 
                 <button
                     type="button"
                     className="btn btn-secondary"
                     onClick={
-                        loadMovements
+                        handleRefresh
                     }
-                    disabled={loading}
+                    disabled={
+                        loading ||
+                        (
+                            isAdmin &&
+                            !selectedBranchId
+                        )
+                    }
                 >
                     {loading
                         ? "Actualizando..."
@@ -594,10 +1005,16 @@ function InventoryMovements() {
                                 onChange={
                                     event =>
                                         setSummaryYear(
-                                            event
-                                                .target
+                                            event.target
                                                 .value
                                         )
+                                }
+                                disabled={
+                                    loadingSummary ||
+                                    (
+                                        isAdmin &&
+                                        !selectedBranchId
+                                    )
                                 }
                             />
                         </div>
@@ -615,11 +1032,17 @@ function InventoryMovements() {
                                     event =>
                                         setSummaryMonth(
                                             Number(
-                                                event
-                                                    .target
+                                                event.target
                                                     .value
                                             )
                                         )
+                                }
+                                disabled={
+                                    loadingSummary ||
+                                    (
+                                        isAdmin &&
+                                        !selectedBranchId
+                                    )
                                 }
                             >
                                 {MONTHS.map(
@@ -647,7 +1070,11 @@ function InventoryMovements() {
                             type="submit"
                             className="btn btn-primary"
                             disabled={
-                                loadingSummary
+                                loadingSummary ||
+                                (
+                                    isAdmin &&
+                                    !selectedBranchId
+                                )
                             }
                         >
                             {loadingSummary
@@ -661,24 +1088,46 @@ function InventoryMovements() {
                     <div
                         className="error-message"
                         style={{
-                            marginTop: "12px"
+                            marginTop:
+                                "12px"
                         }}
                     >
                         {summaryError}
                     </div>
                 )}
 
-                {loadingSummary ? (
+                {isAdmin &&
+                    !selectedBranchId ? (
+                    <p
+                        style={{
+                            color:
+                                "#64748b"
+                        }}
+                    >
+                        Seleccione una sucursal para consultar el resumen mensual.
+                    </p>
+
+                ) : loadingSummary ? (
                     <p>
                         Cargando resumen mensual...
                     </p>
 
-                ) : monthlySummary && (
+                ) : monthlySummary ? (
                     <MonthlySummary
                         summary={
                             monthlySummary
                         }
                     />
+
+                ) : (
+                    <p
+                        style={{
+                            color:
+                                "#64748b"
+                        }}
+                    >
+                        No hay información de resumen disponible.
+                    </p>
                 )}
             </div>
 
@@ -706,17 +1155,20 @@ function InventoryMovements() {
                             <input
                                 type="text"
                                 maxLength={200}
-                                placeholder="Código o nombre del medicamento"
+                                placeholder="Código, nombre, principio activo o motivo"
                                 value={
                                     searchFilter
                                 }
                                 onChange={
                                     event =>
                                         setSearchFilter(
-                                            event
-                                                .target
+                                            event.target
                                                 .value
                                         )
+                                }
+                                disabled={
+                                    isAdmin &&
+                                    !selectedBranchId
                                 }
                             />
                         </div>
@@ -733,10 +1185,13 @@ function InventoryMovements() {
                                 onChange={
                                     event =>
                                         setMovementTypeFilter(
-                                            event
-                                                .target
+                                            event.target
                                                 .value
                                         )
+                                }
+                                disabled={
+                                    isAdmin &&
+                                    !selectedBranchId
                                 }
                             >
                                 <option value="">
@@ -764,6 +1219,93 @@ function InventoryMovements() {
 
                         <div className="form-group">
                             <label>
+                                Número de referencia
+                            </label>
+
+                            <input
+                                type="text"
+                                maxLength={100}
+                                placeholder="Ejemplo: FAC-2026-001"
+                                value={
+                                    referenceNumberFilter
+                                }
+                                onChange={
+                                    event =>
+                                        setReferenceNumberFilter(
+                                            event.target
+                                                .value
+                                        )
+                                }
+                                disabled={
+                                    isAdmin &&
+                                    !selectedBranchId
+                                }
+                            />
+                        </div>
+
+                        <div className="form-group">
+                            <label>
+                                Usuario
+                            </label>
+
+                            <input
+                                type="text"
+                                maxLength={100}
+                                placeholder="Usuario que registró el movimiento"
+                                value={
+                                    createdByFilter
+                                }
+                                onChange={
+                                    event =>
+                                        setCreatedByFilter(
+                                            event.target
+                                                .value
+                                        )
+                                }
+                                disabled={
+                                    isAdmin &&
+                                    !selectedBranchId
+                                }
+                            />
+                        </div>
+
+                        <div className="form-group">
+                            <label>
+                                Estado administrativo
+                            </label>
+
+                            <select
+                                value={
+                                    activeFilter
+                                }
+                                onChange={
+                                    event =>
+                                        setActiveFilter(
+                                            event.target
+                                                .value
+                                        )
+                                }
+                                disabled={
+                                    isAdmin &&
+                                    !selectedBranchId
+                                }
+                            >
+                                <option value="">
+                                    Todos
+                                </option>
+
+                                <option value="true">
+                                    Activos
+                                </option>
+
+                                <option value="false">
+                                    Inactivos
+                                </option>
+                            </select>
+                        </div>
+
+                        <div className="form-group">
+                            <label>
                                 Fecha inicial
                             </label>
 
@@ -775,8 +1317,7 @@ function InventoryMovements() {
                                 onChange={
                                     event => {
                                         setStartDateFilter(
-                                            event
-                                                .target
+                                            event.target
                                                 .value
                                         );
 
@@ -784,6 +1325,10 @@ function InventoryMovements() {
                                             {}
                                         );
                                     }
+                                }
+                                disabled={
+                                    isAdmin &&
+                                    !selectedBranchId
                                 }
                             />
                         </div>
@@ -801,8 +1346,7 @@ function InventoryMovements() {
                                 onChange={
                                     event => {
                                         setEndDateFilter(
-                                            event
-                                                .target
+                                            event.target
                                                 .value
                                         );
 
@@ -810,6 +1354,10 @@ function InventoryMovements() {
                                             {}
                                         );
                                     }
+                                }
+                                disabled={
+                                    isAdmin &&
+                                    !selectedBranchId
                                 }
                             />
                         </div>
@@ -823,6 +1371,10 @@ function InventoryMovements() {
                                 value={size}
                                 onChange={
                                     handleSizeChange
+                                }
+                                disabled={
+                                    isAdmin &&
+                                    !selectedBranchId
                                 }
                             >
                                 <option value={10}>
@@ -857,7 +1409,13 @@ function InventoryMovements() {
                         <button
                             type="submit"
                             className="btn btn-primary"
-                            disabled={loading}
+                            disabled={
+                                loading ||
+                                (
+                                    isAdmin &&
+                                    !selectedBranchId
+                                )
+                            }
                         >
                             {loading
                                 ? "Buscando..."
@@ -870,7 +1428,13 @@ function InventoryMovements() {
                             onClick={
                                 clearFilters
                             }
-                            disabled={loading}
+                            disabled={
+                                loading ||
+                                (
+                                    isAdmin &&
+                                    !selectedBranchId
+                                )
+                            }
                         >
                             Limpiar filtros
                         </button>
@@ -879,7 +1443,18 @@ function InventoryMovements() {
 
                 <br />
 
-                {loading ? (
+                {isAdmin &&
+                    !selectedBranchId ? (
+                    <p
+                        style={{
+                            color:
+                                "#64748b"
+                        }}
+                    >
+                        Seleccione una sucursal para consultar los movimientos.
+                    </p>
+
+                ) : loading ? (
                     <p>
                         Cargando movimientos...
                     </p>
@@ -887,7 +1462,8 @@ function InventoryMovements() {
                 ) : movements.length === 0 ? (
                     <p
                         style={{
-                            color: "#64748b"
+                            color:
+                                "#64748b"
                         }}
                     >
                         No existen movimientos que coincidan con los filtros seleccionados.
@@ -896,7 +1472,8 @@ function InventoryMovements() {
                 ) : (
                     <div
                         style={{
-                            overflowX: "auto"
+                            overflowX:
+                                "auto"
                         }}
                     >
                         <table className="data-table">
@@ -931,7 +1508,11 @@ function InventoryMovements() {
                                     </th>
 
                                     <th>
-                                        Motivo
+                                        Costo unitario
+                                    </th>
+
+                                    <th>
+                                        Costo total
                                     </th>
 
                                     <th>
@@ -939,7 +1520,15 @@ function InventoryMovements() {
                                     </th>
 
                                     <th>
+                                        Motivo
+                                    </th>
+
+                                    <th>
                                         Usuario
+                                    </th>
+
+                                    <th>
+                                        Estado
                                     </th>
                                 </tr>
                             </thead>
@@ -1038,8 +1627,24 @@ function InventoryMovements() {
                                             <td>
                                                 {
                                                     movement
-                                                        .reason ||
-                                                    "Sin motivo"
+                                                        .unitCost != null
+                                                        ? formatCurrency(
+                                                            movement
+                                                                .unitCost
+                                                        )
+                                                        : "No aplica"
+                                                }
+                                            </td>
+
+                                            <td>
+                                                {
+                                                    movement
+                                                        .totalCost != null
+                                                        ? formatCurrency(
+                                                            movement
+                                                                .totalCost
+                                                        )
+                                                        : "No aplica"
                                                 }
                                             </td>
 
@@ -1054,9 +1659,31 @@ function InventoryMovements() {
                                             <td>
                                                 {
                                                     movement
+                                                        .reason ||
+                                                    "Sin motivo"
+                                                }
+                                            </td>
+
+                                            <td>
+                                                {
+                                                    movement
                                                         .createdBy ||
                                                     "Sin información"
                                                 }
+                                            </td>
+
+                                            <td>
+                                                <span
+                                                    className={
+                                                        movement.active === false
+                                                            ? "status-inactive"
+                                                            : "status-active"
+                                                    }
+                                                >
+                                                    {movement.active === false
+                                                        ? "Inactivo"
+                                                        : "Activo"}
+                                                </span>
                                             </td>
                                         </tr>
                                     )
@@ -1068,22 +1695,30 @@ function InventoryMovements() {
 
                 <div
                     style={{
-                        marginTop: "18px",
-                        display: "flex",
+                        marginTop:
+                            "18px",
+                        display:
+                            "flex",
                         justifyContent:
                             "space-between",
-                        alignItems: "center",
-                        gap: "12px",
-                        flexWrap: "wrap"
+                        alignItems:
+                            "center",
+                        gap:
+                            "12px",
+                        flexWrap:
+                            "wrap"
                     }}
                 >
                     <div>
                         Total:
                         {" "}
+
                         <strong>
                             {totalElements}
                         </strong>
+
                         {" "}
+
                         movimiento(s)
                     </div>
 
@@ -1093,7 +1728,11 @@ function InventoryMovements() {
                             className="btn btn-secondary"
                             disabled={
                                 first ||
-                                loading
+                                loading ||
+                                (
+                                    isAdmin &&
+                                    !selectedBranchId
+                                )
                             }
                             onClick={() =>
                                 setPage(
@@ -1111,14 +1750,19 @@ function InventoryMovements() {
                         <span>
                             Página
                             {" "}
+
                             <strong>
                                 {totalPages === 0
                                     ? 0
                                     : page + 1}
                             </strong>
+
                             {" "}
+
                             de
+
                             {" "}
+
                             <strong>
                                 {totalPages}
                             </strong>
@@ -1130,7 +1774,11 @@ function InventoryMovements() {
                             disabled={
                                 last ||
                                 loading ||
-                                totalPages === 0
+                                totalPages === 0 ||
+                                (
+                                    isAdmin &&
+                                    !selectedBranchId
+                                )
                             }
                             onClick={() =>
                                 setPage(
@@ -1164,23 +1812,30 @@ function MonthlySummary({
     return (
         <div
             style={{
-                marginTop: "18px"
+                marginTop:
+                    "18px"
             }}
         >
             <div
                 style={{
-                    padding: "12px",
-                    borderRadius: "6px",
+                    padding:
+                        "12px",
+                    borderRadius:
+                        "6px",
                     backgroundColor:
                         "#f8fafc",
-                    color: "#334155",
-                    marginBottom: "16px"
+                    color:
+                        "#334155",
+                    marginBottom:
+                        "16px"
                 }}
             >
                 <strong>
                     Sucursal:
                 </strong>
+
                 {" "}
+
                 {summary.branchName ||
                     "Sin información"}
 
@@ -1189,13 +1844,19 @@ function MonthlySummary({
                 <strong>
                     Período:
                 </strong>
+
                 {" "}
+
                 {formatDate(
                     summary.periodStart
                 )}
+
                 {" "}
+
                 al
+
                 {" "}
+
                 {formatDate(
                     summary.periodEnd
                 )}
@@ -1203,17 +1864,21 @@ function MonthlySummary({
 
             <div
                 style={{
-                    display: "grid",
+                    display:
+                        "grid",
                     gridTemplateColumns:
                         "repeat(auto-fit, minmax(180px, 1fr))",
-                    gap: "12px",
-                    marginBottom: "18px"
+                    gap:
+                        "12px",
+                    marginBottom:
+                        "18px"
                 }}
             >
                 <SummaryCard
                     title="Movimientos"
                     value={
-                        summary.totalMovements ??
+                        summary
+                            .totalMovements ??
                         0
                     }
                     color="#1d4ed8"
@@ -1222,7 +1887,8 @@ function MonthlySummary({
                 <SummaryCard
                     title="Entradas"
                     value={
-                        summary.totalEntries ??
+                        summary
+                            .totalEntries ??
                         0
                     }
                     color="#15803d"
@@ -1231,7 +1897,8 @@ function MonthlySummary({
                 <SummaryCard
                     title="Salidas manuales"
                     value={
-                        summary.totalOutputs ??
+                        summary
+                            .totalOutputs ??
                         0
                     }
                     color="#b45309"
@@ -1240,7 +1907,8 @@ function MonthlySummary({
                 <SummaryCard
                     title="Despachado"
                     value={
-                        summary.totalDispensed ??
+                        summary
+                            .totalDispensed ??
                         0
                     }
                     color="#b91c1c"
@@ -1259,7 +1927,8 @@ function MonthlySummary({
             ) : (
                 <div
                     style={{
-                        overflowX: "auto"
+                        overflowX:
+                            "auto"
                     }}
                 >
                     <table className="data-table">
@@ -1435,6 +2104,9 @@ function MonthlySummary({
     );
 }
 
+/**
+ * Tarjeta del resumen general.
+ */
 function SummaryCard({
     title,
     value,
@@ -1443,8 +2115,10 @@ function SummaryCard({
     return (
         <div
             style={{
-                padding: "16px",
-                borderRadius: "8px",
+                padding:
+                    "16px",
+                borderRadius:
+                    "8px",
                 backgroundColor:
                     "#ffffff",
                 border:
@@ -1455,8 +2129,10 @@ function SummaryCard({
         >
             <div
                 style={{
-                    color: "#64748b",
-                    marginBottom: "6px"
+                    color:
+                        "#64748b",
+                    marginBottom:
+                        "6px"
                 }}
             >
                 {title}
@@ -1464,8 +2140,10 @@ function SummaryCard({
 
             <div
                 style={{
-                    fontSize: "1.5rem",
-                    fontWeight: 700,
+                    fontSize:
+                        "1.5rem",
+                    fontWeight:
+                        700,
                     color
                 }}
             >
@@ -1475,6 +2153,9 @@ function SummaryCard({
     );
 }
 
+/**
+ * Etiqueta visible del tipo de movimiento.
+ */
 function MovementTypeBadge({
     type
 }) {
@@ -1483,10 +2164,22 @@ function MovementTypeBadge({
             "Stock inicial",
 
         ENTRADA:
-            "Entrada",
+            "Entrada histórica",
 
         SALIDA:
-            "Salida",
+            "Salida histórica",
+
+        COMPRA:
+            "Compra",
+
+        DEVOLUCION:
+            "Devolución",
+
+        VENTA:
+            "Venta",
+
+        RECLAMO:
+            "Reclamo",
 
         AJUSTE_POSITIVO:
             "Ajuste positivo",
@@ -1505,6 +2198,8 @@ function MovementTypeBadge({
         new Set([
             "STOCK_INICIAL",
             "ENTRADA",
+            "COMPRA",
+            "DEVOLUCION",
             "AJUSTE_POSITIVO",
             "REACTIVACION"
         ]);
@@ -1512,18 +2207,26 @@ function MovementTypeBadge({
     const negativeTypes =
         new Set([
             "SALIDA",
+            "VENTA",
+            "RECLAMO",
             "AJUSTE_NEGATIVO",
             "DESPACHO"
         ]);
 
     let className = "";
 
-    if (positiveTypes.has(type)) {
+    if (
+        positiveTypes.has(
+            type
+        )
+    ) {
         className =
             "status-active";
 
     } else if (
-        negativeTypes.has(type)
+        negativeTypes.has(
+            type
+        )
     ) {
         className =
             "status-inactive";
@@ -1531,9 +2234,12 @@ function MovementTypeBadge({
 
     return (
         <span
-            className={className}
+            className={
+                className
+            }
             style={{
-                whiteSpace: "nowrap"
+                whiteSpace:
+                    "nowrap"
             }}
         >
             {labels[type] ||
@@ -1543,12 +2249,17 @@ function MovementTypeBadge({
     );
 }
 
+/**
+ * Cantidad firmada del movimiento.
+ */
 function SignedQuantity({
     value,
     unit
 }) {
     const numericValue =
-        Number(value ?? 0);
+        Number(
+            value ?? 0
+        );
 
     const positive =
         numericValue > 0;
@@ -1567,15 +2278,20 @@ function SignedQuantity({
                                 ? "#b91c1c"
                                 : "#475569"
                         ),
-                whiteSpace: "nowrap"
+                whiteSpace:
+                    "nowrap"
             }}
         >
             {positive
                 ? "+"
                 : ""}
+
             {numericValue}
+
             {" "}
-            {unit || "UNIDADES"}
+
+            {unit ||
+                "UNIDADES"}
         </strong>
     );
 }
@@ -1585,7 +2301,9 @@ function PositiveValue({
     unit
 }) {
     const numericValue =
-        Number(value ?? 0);
+        Number(
+            value ?? 0
+        );
 
     return (
         <span
@@ -1594,15 +2312,20 @@ function PositiveValue({
                     numericValue > 0
                         ? "#15803d"
                         : "#475569",
-                whiteSpace: "nowrap"
+                whiteSpace:
+                    "nowrap"
             }}
         >
             {numericValue > 0
                 ? "+"
                 : ""}
+
             {numericValue}
+
             {" "}
-            {unit || "UNIDADES"}
+
+            {unit ||
+                "UNIDADES"}
         </span>
     );
 }
@@ -1612,7 +2335,9 @@ function NegativeValue({
     unit
 }) {
     const numericValue =
-        Number(value ?? 0);
+        Number(
+            value ?? 0
+        );
 
     return (
         <span
@@ -1621,31 +2346,85 @@ function NegativeValue({
                     numericValue > 0
                         ? "#b91c1c"
                         : "#475569",
-                whiteSpace: "nowrap"
+                whiteSpace:
+                    "nowrap"
             }}
         >
             {numericValue > 0
                 ? "-"
                 : ""}
+
             {numericValue}
+
             {" "}
-            {unit || "UNIDADES"}
+
+            {unit ||
+                "UNIDADES"}
         </span>
     );
 }
 
+/**
+ * Formatea stock y unidad.
+ */
 function formatStock(
     value,
     unit
 ) {
-    return `${value ?? 0
-        } ${unit || "UNIDADES"
+    return `${value ?? 0} ${unit || "UNIDADES"
         }`;
 }
 
+/**
+ * Formatea el costo en quetzales.
+ */
+function formatCurrency(
+    value
+) {
+    const numericValue =
+        Number(value);
+
+    if (
+        Number.isNaN(
+            numericValue
+        )
+    ) {
+        return "Q 0.00";
+    }
+
+    return new Intl.NumberFormat(
+        "es-GT",
+        {
+            style:
+                "currency",
+            currency:
+                "GTQ",
+            minimumFractionDigits:
+                2,
+            maximumFractionDigits:
+                2
+        }
+    ).format(
+        numericValue
+    );
+}
+
+/**
+ * Construye una referencia legible.
+ *
+ * Prioriza referenceNumber porque es la
+ * referencia funcional ingresada en CU-15.
+ */
 function formatReference(
     movement
 ) {
+    if (
+        movement?.referenceNumber
+    ) {
+        return movement
+            .referenceNumber;
+    }
+
     if (
         !movement?.referenceType &&
         movement?.referenceId == null
@@ -1666,7 +2445,12 @@ function formatReference(
     );
 }
 
-function formatDateTime(value) {
+/**
+ * Formatea fecha y hora.
+ */
+function formatDateTime(
+    value
+) {
     if (!value) {
         return "Sin información";
     }
@@ -1686,16 +2470,27 @@ function formatDateTime(value) {
         .toLocaleString(
             "es-GT",
             {
-                day: "2-digit",
-                month: "2-digit",
-                year: "numeric",
-                hour: "2-digit",
-                minute: "2-digit"
+                day:
+                    "2-digit",
+                month:
+                    "2-digit",
+                year:
+                    "numeric",
+                hour:
+                    "2-digit",
+                minute:
+                    "2-digit"
             }
         );
 }
 
-function formatDate(value) {
+/**
+ * Formatea una fecha ISO sin alterar el día
+ * por diferencias de zona horaria.
+ */
+function formatDate(
+    value
+) {
     if (!value) {
         return "Sin información";
     }
