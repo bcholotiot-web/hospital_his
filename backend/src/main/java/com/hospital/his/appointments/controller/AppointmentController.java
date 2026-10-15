@@ -67,6 +67,27 @@ public class AppointmentController {
         );
     }
 
+    @GetMapping("/availability")
+    public ResponseEntity<
+            List<AvailableSlotResponse>
+            >
+    getAvailability(
+            @RequestParam
+            Long doctorId,
+
+            @RequestParam
+            String date
+    ) {
+        return ResponseEntity.ok(
+                appointmentService
+                        .getAvailableSlots(
+                                doctorId,
+                                date
+                        )
+        );
+    }
+
+
     @PreAuthorize("hasRole('PACIENTE')")
     @GetMapping("/available-slots")
     public ResponseEntity<List<AvailableSlotResponse>> getAvailableSlots(

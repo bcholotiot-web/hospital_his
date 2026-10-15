@@ -216,9 +216,9 @@ function Home() {
                 <div className="contact-box">
                     <p><strong>Horario de atención:</strong> Lunes a viernes de 8:00 a 17:00</p>
 
-                    <p><strong>Ubicación:</strong> Sede Central</p>
+                    <p><strong>Ubicación:</strong> Sede Central Zona 1 Guatemala, Guatemala</p>
 
-                    <p><strong>Teléfono:</strong> 0000-0000</p>
+                    <p><strong>Teléfono:</strong> +502 2232-0000</p>
                 </div>
             </section>
 

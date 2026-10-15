@@ -87,12 +87,6 @@ function MainLayout({
                 </h2>
 
                 <nav className="main-sidebar-nav">
-                    <Link
-                        to="/dashboard"
-                        className="main-sidebar-link"
-                    >
-                        Dashboard
-                    </Link>
 
                     {/*
                      * Administración de usuarios.
